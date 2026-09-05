@@ -1,3 +1,10 @@
-# memory/ INDEX
+# memory 索引（asobi-share）
 
-- [20260905_feedback-and-tasks-mvp-updates.md](20260905_feedback-and-tasks-mvp-updates.md) — CEOフィードバック9項目のモック実装、tasks/board.md新設
+このプロダクト固有の実装内容・意思決定を記録する。全社横断の内容は
+[`../../../memory/`](../../../memory/)（hq側）へ。フォーマット・運用ルールは
+[`../CLAUDE.md`](../CLAUDE.md)を参照。
+
+新しい順に追記する。
+
+- [2026-09-05 CEOフィードバック9項目の実装と共同タスクボードの新設](20260905_feedback-and-tasks-mvp-updates.md) — CEOフィードバック9項目のモック実装、tasks/board.md新設
+- [2026-09-05 memory/ディレクトリの新設](20260905_memory-setup.md) — hqの方針に従いこのリポジトリにmemory/を新設
