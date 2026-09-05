@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, lte, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trips as tripsTable } from "@/db/schema";
 
@@ -42,17 +42,23 @@ const SORT_COLUMN = {
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ genre?: string; sort?: string }>;
+  searchParams: Promise<{ genre?: string; sort?: string; budget?: string }>;
 }) {
   const params = await searchParams;
   const genre = params.genre ?? "すべて";
   const sort: SortKey = (SORTS.find((s) => s.key === params.sort)?.key ?? "saves");
+  const budget = params.budget ? Number(params.budget) : undefined;
 
   const db = getDb();
+  const conditions = [
+    genre === "すべて" ? undefined : eq(tripsTable.genre, genre),
+    budget ? or(eq(tripsTable.priceYen, 0), lte(tripsTable.priceYen, budget)) : undefined,
+  ].filter((c): c is NonNullable<typeof c> => c !== undefined);
+
   const list = await db
     .select()
     .from(tripsTable)
-    .where(genre === "すべて" ? undefined : eq(tripsTable.genre, genre))
+    .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(SORT_COLUMN[sort]));
 
   return (
@@ -79,6 +85,15 @@ export default async function DiscoverPage({
           </svg>
           行き先・キーワードで探す
         </div>
+
+        {budget && (
+          <div className="mx-4 mt-2.5 flex items-center gap-2 rounded-[11px] bg-plan-soft px-3 py-2 text-[12px] text-plan">
+            <span>🔍 検索条件（予算¥{budget.toLocaleString()}以下）に合わせて絞り込み中</span>
+            <Link href="/" className="ml-auto shrink-0 font-bold underline">
+              解除
+            </Link>
+          </div>
+        )}
 
         <div className="scrollbar-none flex gap-[7px] overflow-x-auto px-4 pb-1 pt-3.5">
           {GENRES.map((g) => (
