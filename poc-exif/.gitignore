@@ -1,0 +1,5 @@
+# 実写真から抽出した個人の位置情報。GitHubへ出さない。
+exif_cache.json
+itinerary_icloud.json
+tune_*.json
+*.log
