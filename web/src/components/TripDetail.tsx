@@ -6,7 +6,7 @@ import Link from "next/link";
 import { SignInButton } from "@clerk/nextjs";
 import type { InferSelectModel } from "drizzle-orm";
 import type { trips, tripDays, tripEvents, eventPhotos, users } from "@/db/schema";
-import { toggleLike, toggleSave } from "@/app/(app)/trips/[id]/actions";
+import { purchaseTrip, toggleLike, toggleSave } from "@/app/(app)/trips/[id]/actions";
 
 type EventPhoto = InferSelectModel<typeof eventPhotos>;
 type TripEvent = InferSelectModel<typeof tripEvents> & { photos: EventPhoto[] };
@@ -42,11 +42,15 @@ export function TripDetail({
   initialSaved,
   initialLiked,
   isLoggedIn,
+  purchased: initialPurchased,
+  coinBalance,
 }: {
   trip: Trip;
   initialSaved: boolean;
   initialLiked: boolean;
   isLoggedIn: boolean;
+  purchased: boolean;
+  coinBalance: number;
 }) {
   const [dayIndex, setDayIndex] = useState(0);
   const [layer, setLayer] = useState<"plan" | "actual">("plan");
@@ -55,6 +59,8 @@ export function TripDetail({
   const [saveCount, setSaveCount] = useState(trip.savesCount);
   const [liked, setLiked] = useState(initialLiked);
   const [likeCount, setLikeCount] = useState(trip.likesCount);
+  const [purchased, setPurchased] = useState(initialPurchased);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleToggleSave() {
@@ -73,9 +79,22 @@ export function TripDetail({
     });
   }
 
+  function handlePurchase(method: "yen" | "coin") {
+    if (!isLoggedIn) return;
+    setPurchaseError(null);
+    startTransition(async () => {
+      const result = await purchaseTrip(trip.id, method);
+      if (result.ok) {
+        setPurchased(true);
+      } else {
+        setPurchaseError(result.error);
+      }
+    });
+  }
+
   const day = trip.days[dayIndex];
   const hasDetail = trip.days.length > 0 && day?.events.length > 0;
-  const paidFrom = trip.paidFromEventOrder;
+  const paidFrom = purchased ? null : trip.paidFromEventOrder;
 
   if (!hasDetail) {
     return (
@@ -295,16 +314,35 @@ export function TripDetail({
                 <br />
                 ぜんぶの「気をつけること」が読めます
               </p>
-              <div className="flex flex-col gap-[7px]">
-                <button className="rounded-[10px] bg-money px-5 py-2.5 text-[13.5px] font-bold text-white">
-                  ¥{trip.priceYen.toLocaleString()}で購入する
-                </button>
-                {trip.priceCoin != null && (
-                  <button className="rounded-[10px] border border-coin bg-transparent px-5 py-2.5 text-[13.5px] font-bold text-coin">
-                    🪙 {trip.priceCoin.toLocaleString()}コインで購入する
+              {purchaseError && (
+                <p className="mb-2 text-[11px] leading-[1.5] text-actual">{purchaseError}</p>
+              )}
+              {isLoggedIn ? (
+                <div className="flex flex-col gap-[7px]">
+                  <button
+                    onClick={() => handlePurchase("yen")}
+                    disabled={isPending}
+                    className="rounded-[10px] bg-money px-5 py-2.5 text-[13.5px] font-bold text-white disabled:opacity-50"
+                  >
+                    ¥{trip.priceYen.toLocaleString()}で購入する
                   </button>
-                )}
-              </div>
+                  {trip.priceCoin != null && (
+                    <button
+                      onClick={() => handlePurchase("coin")}
+                      disabled={isPending}
+                      className="rounded-[10px] border border-coin bg-transparent px-5 py-2.5 text-[13.5px] font-bold text-coin disabled:opacity-50"
+                    >
+                      🪙 {trip.priceCoin.toLocaleString()}コインで購入する（残高 🪙{coinBalance.toLocaleString()}）
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <SignInButton mode="modal">
+                  <button className="w-full rounded-[10px] bg-money px-5 py-2.5 text-[13.5px] font-bold text-white">
+                    ログインして購入する
+                  </button>
+                </SignInButton>
+              )}
             </div>
           )}
         </div>
