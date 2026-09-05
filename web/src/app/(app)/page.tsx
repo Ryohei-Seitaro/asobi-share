@@ -3,6 +3,7 @@ import Image from "next/image";
 import { and, desc, eq, lte, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trips as tripsTable } from "@/db/schema";
+import { ChatSuggest } from "@/components/ChatSuggest";
 
 const GENRES = [
   "すべて",
@@ -62,7 +63,7 @@ export default async function DiscoverPage({
     .orderBy(desc(SORT_COLUMN[sort]));
 
   return (
-    <>
+    <div className="relative flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2.5 border-b border-line-soft px-4 py-3.5">
         <h1 className="flex-1 font-display text-[17px] font-semibold">見つける</h1>
         <Link
@@ -180,6 +181,7 @@ export default async function DiscoverPage({
           })}
         </div>
       </div>
-    </>
+      <ChatSuggest />
+    </div>
   );
 }
