@@ -77,7 +77,8 @@ export function TripDetail({ trip }: { trip: Trip }) {
               i === dayIndex ? "bg-surface-2 text-ink" : "text-ink-3"
             }`}
           >
-            DAY {i + 1} — {d.dateLabel}
+            DAY {i + 1}
+            {d.dateLabel && ` — ${d.dateLabel}`}
           </button>
         ))}
       </div>
