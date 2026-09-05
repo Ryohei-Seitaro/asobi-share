@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { trips as tripsTable } from "@/db/schema";
+import { trips as tripsTable, tripSaves, tripLikes } from "@/db/schema";
 import { TripDetail } from "@/components/TripDetail";
+import { getOrCreateUser } from "@/lib/auth";
 
 export default async function TripDetailPage({
   params,
@@ -34,5 +35,17 @@ export default async function TripDetailPage({
 
   if (!trip) notFound();
 
-  return <TripDetail trip={trip} />;
+  const user = await getOrCreateUser();
+  let initialSaved = false;
+  let initialLiked = false;
+  if (user) {
+    const [saveRow, likeRow] = await Promise.all([
+      db.query.tripSaves.findFirst({ where: and(eq(tripSaves.tripId, id), eq(tripSaves.userId, user.id)) }),
+      db.query.tripLikes.findFirst({ where: and(eq(tripLikes.tripId, id), eq(tripLikes.userId, user.id)) }),
+    ]);
+    initialSaved = !!saveRow;
+    initialLiked = !!likeRow;
+  }
+
+  return <TripDetail trip={trip} initialSaved={initialSaved} initialLiked={initialLiked} isLoggedIn={!!user} />;
 }

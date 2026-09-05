@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { SignInButton } from "@clerk/nextjs";
 import type { InferSelectModel } from "drizzle-orm";
 import type { trips, tripDays, tripEvents, eventPhotos, users } from "@/db/schema";
+import { toggleLike, toggleSave } from "@/app/(app)/trips/[id]/actions";
 
 type EventPhoto = InferSelectModel<typeof eventPhotos>;
 type TripEvent = InferSelectModel<typeof tripEvents> & { photos: EventPhoto[] };
@@ -35,12 +37,41 @@ function tabelogUrl(place: string): string {
   return `https://tabelog.com/rstLst/?sw=${encodeURIComponent(place)}`;
 }
 
-export function TripDetail({ trip }: { trip: Trip }) {
+export function TripDetail({
+  trip,
+  initialSaved,
+  initialLiked,
+  isLoggedIn,
+}: {
+  trip: Trip;
+  initialSaved: boolean;
+  initialLiked: boolean;
+  isLoggedIn: boolean;
+}) {
   const [dayIndex, setDayIndex] = useState(0);
   const [layer, setLayer] = useState<"plan" | "actual">("plan");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(initialSaved);
   const [saveCount, setSaveCount] = useState(trip.savesCount);
+  const [liked, setLiked] = useState(initialLiked);
+  const [likeCount, setLikeCount] = useState(trip.likesCount);
+  const [isPending, startTransition] = useTransition();
+
+  function handleToggleSave() {
+    startTransition(async () => {
+      const result = await toggleSave(trip.id);
+      setSaved(result.saved);
+      setSaveCount(result.savesCount);
+    });
+  }
+
+  function handleToggleLike() {
+    startTransition(async () => {
+      const result = await toggleLike(trip.id);
+      setLiked(result.liked);
+      setLikeCount(result.likesCount);
+    });
+  }
 
   const day = trip.days[dayIndex];
   const hasDetail = trip.days.length > 0 && day?.events.length > 0;
@@ -53,6 +84,15 @@ export function TripDetail({ trip }: { trip: Trip }) {
         <div className="flex flex-1 items-center justify-center px-6 text-center text-[13px] text-ink-3">
           この旅程はまだ時間割の詳細が登録されていません。
         </div>
+        <SaveLikeBar
+          isLoggedIn={isLoggedIn}
+          isPending={isPending}
+          liked={liked}
+          likeCount={likeCount}
+          saved={saved}
+          onToggleLike={handleToggleLike}
+          onToggleSave={handleToggleSave}
+        />
       </div>
     );
   }
@@ -270,19 +310,73 @@ export function TripDetail({ trip }: { trip: Trip }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2.5 border-t border-line-soft bg-surface px-4 py-3.5">
+      <SaveLikeBar
+        isLoggedIn={isLoggedIn}
+        isPending={isPending}
+        liked={liked}
+        likeCount={likeCount}
+        saved={saved}
+        onToggleLike={handleToggleLike}
+        onToggleSave={handleToggleSave}
+      />
+    </div>
+  );
+}
+
+function SaveLikeBar({
+  isLoggedIn,
+  isPending,
+  liked,
+  likeCount,
+  saved,
+  onToggleLike,
+  onToggleSave,
+}: {
+  isLoggedIn: boolean;
+  isPending: boolean;
+  liked: boolean;
+  likeCount: number;
+  saved: boolean;
+  onToggleLike: () => void;
+  onToggleSave: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 border-t border-line-soft bg-surface px-4 py-3.5">
+      <button
+        onClick={onToggleLike}
+        disabled={!isLoggedIn || isPending}
+        aria-label="いいね"
+        className={`flex shrink-0 items-center gap-1 rounded-[11px] border px-3.5 py-3 text-[13px] font-bold disabled:opacity-50 ${
+          liked ? "border-actual bg-actual-soft text-actual" : "border-line text-ink-2"
+        }`}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill={liked ? "currentColor" : "none"} aria-hidden="true">
+          <path
+            d="M8 14s-6-3.7-6-8.2C2 3.1 3.8 1.5 6 1.5c1.1 0 2.1.5 2 1.5.9-1 1.9-1.5 3-1.5 2.2 0 4 1.6 4 4.3 0 4.5-6 8.2-6 8.2z"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+          />
+        </svg>
+        {likeCount}
+      </button>
+      {isLoggedIn ? (
         <button
-          onClick={() => {
-            setSaved((v) => !v);
-            setSaveCount((c) => c + (saved ? -1 : 1));
-          }}
-          className={`flex-1 rounded-[11px] py-3 text-[14px] font-bold ${
+          onClick={onToggleSave}
+          disabled={isPending}
+          className={`flex-1 rounded-[11px] py-3 text-[14px] font-bold disabled:opacity-50 ${
             saved ? "bg-surface-2 text-ink-2" : "bg-plan text-white"
           }`}
         >
           {saved ? "保存しました" : "この旅程を保存"}
         </button>
-      </div>
+      ) : (
+        <SignInButton mode="modal">
+          <button className="flex-1 rounded-[11px] bg-plan py-3 text-[14px] font-bold text-white">
+            ログインして保存
+          </button>
+        </SignInButton>
+      )}
     </div>
   );
 }
