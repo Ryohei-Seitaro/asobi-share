@@ -8,6 +8,7 @@ import {
   uuid,
   primaryKey,
   uniqueIndex,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -41,6 +42,7 @@ export const trips = pgTable("trips", {
   title: text("title").notNull(),
   genre: text("genre").notNull(), // タグ表示・chipsフィルタに使う値（例: "国内旅行", "山登り"）
   daysLabel: text("days_label").notNull(), // 表示用（例: "1泊2日", "日帰り"）
+  coverPhotos: jsonb("cover_photos").$type<string[]>().notNull().default([]), // カード一覧用の代表写真（3枚想定）
   visibility: visibilityEnum("visibility").notNull().default("public"),
   priceYen: integer("price_yen").notNull().default(0), // 0 = 無料
   priceCoin: integer("price_coin"), // nullable: 円のみ対応の場合はnull

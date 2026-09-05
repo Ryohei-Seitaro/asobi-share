@@ -1,0 +1,330 @@
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import type { InferSelectModel } from "drizzle-orm";
+import type { trips, tripDays, tripEvents, eventPhotos, users } from "@/db/schema";
+
+type EventPhoto = InferSelectModel<typeof eventPhotos>;
+type TripEvent = InferSelectModel<typeof tripEvents> & { photos: EventPhoto[] };
+type TripDay = InferSelectModel<typeof tripDays> & { events: TripEvent[] };
+type Trip = InferSelectModel<typeof trips> & {
+  author: InferSelectModel<typeof users>;
+  days: TripDay[];
+};
+
+const PPM = 26 / 15; // pixel per minute
+
+function toMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function fmt(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function mapUrl(place: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`;
+}
+
+function tabelogUrl(place: string): string {
+  return `https://tabelog.com/rstLst/?sw=${encodeURIComponent(place)}`;
+}
+
+export function TripDetail({ trip }: { trip: Trip }) {
+  const [dayIndex, setDayIndex] = useState(0);
+  const [layer, setLayer] = useState<"plan" | "actual">("plan");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [saveCount, setSaveCount] = useState(trip.savesCount);
+
+  const day = trip.days[dayIndex];
+  const hasDetail = trip.days.length > 0 && day?.events.length > 0;
+  const paidFrom = trip.paidFromEventOrder;
+
+  if (!hasDetail) {
+    return (
+      <div className="flex flex-1 flex-col">
+        <TripHeader trip={trip} saved={saved} saveCount={saveCount} />
+        <div className="flex flex-1 items-center justify-center px-6 text-center text-[13px] text-ink-3">
+          この旅程はまだ時間割の詳細が登録されていません。
+        </div>
+      </div>
+    );
+  }
+
+  const open = toMinutes(day.openTime);
+  const close = toMinutes(day.closeTime);
+  const gridHeight = (close - open) * PPM;
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <TripHeader trip={trip} saved={saved} saveCount={saveCount} />
+
+      <div className="flex gap-1 bg-surface px-4 pt-2.5">
+        {trip.days.map((d, i) => (
+          <button
+            key={d.id}
+            onClick={() => {
+              setDayIndex(i);
+              setExpandedId(null);
+            }}
+            className={`rounded-t-lg px-[11px] py-[7px] text-[12.5px] font-medium ${
+              i === dayIndex ? "bg-surface-2 text-ink" : "text-ink-3"
+            }`}
+          >
+            DAY {i + 1} — {d.dateLabel}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-surface-2 px-4 pb-1 pt-[11px]">
+        <div className="flex gap-[3px] rounded-[10px] border border-line bg-surface p-[3px]">
+          {(["plan", "actual"] as const).map((l) => (
+            <button
+              key={l}
+              onClick={() => {
+                setLayer(l);
+                setExpandedId(null);
+              }}
+              className={`flex-1 rounded-[7px] py-[7px] text-[13px] font-bold ${
+                l === layer
+                  ? l === "plan"
+                    ? "bg-plan text-white"
+                    : "bg-actual text-white"
+                  : "text-ink-3"
+              }`}
+            >
+              {l === "plan" ? "計画" : "実際"}
+            </button>
+          ))}
+        </div>
+        <p className="my-2 text-[11.5px] leading-[1.55] text-ink-2">
+          {layer === "plan"
+            ? "この旅程の「計画」です。実際に切り替えると、押した時間と気をつけることが出ます。"
+            : "実際に行った時刻に変わりました。予定をタップすると「気をつけること」が読めます。"}
+        </p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto bg-surface-2 px-3 pb-6">
+        <div className="relative pl-11" style={{ height: gridHeight }}>
+          <div
+            className="pointer-events-none absolute inset-0 left-11 rounded-md opacity-45"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 26px), repeating-linear-gradient(to bottom, var(--ink-3) 0 1px, transparent 1px 104px)",
+            }}
+          />
+          {Array.from({ length: Math.floor((close - Math.ceil(open / 60) * 60) / 60) + 1 }).map(
+            (_, i) => {
+              const m = Math.ceil(open / 60) * 60 + i * 60;
+              return (
+                <span
+                  key={m}
+                  className="absolute left-0 w-[38px] -translate-y-[7px] text-right font-mono-num text-[11px] tabular-nums text-ink-3"
+                  style={{ top: (m - open) * PPM }}
+                >
+                  {fmt(m)}
+                </span>
+              );
+            }
+          )}
+
+          {day.events.map((ev) => {
+            const startStr = (layer === "plan" ? ev.planStart : ev.actualStart) ?? ev.planStart;
+            const endStr = (layer === "plan" ? ev.planEnd : ev.actualEnd) ?? ev.planEnd;
+            const s0 = toMinutes(startStr);
+            const e0 = toMinutes(endStr);
+            const dur = e0 - s0;
+            const locked = paidFrom != null && ev.orderIndex >= paidFrom;
+            const expanded = expandedId === ev.id;
+            const shiftMin = toMinutes(ev.actualStart ?? ev.planStart) - toMinutes(ev.planStart);
+
+            return (
+              <div
+                key={ev.id}
+                role="button"
+                tabIndex={locked ? -1 : 0}
+                onClick={() => !locked && setExpandedId(expanded ? null : ev.id)}
+                onKeyDown={(e) => {
+                  if (!locked && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    setExpandedId(expanded ? null : ev.id);
+                  }
+                }}
+                className={`absolute left-11 right-0 overflow-hidden rounded-[9px] border border-line bg-surface px-2.5 py-[7px] ${
+                  layer === "plan" ? "border-l-[3px] border-l-plan" : "border-l-[3px] border-l-actual"
+                } ${locked ? "pointer-events-none blur-[3.5px]" : "cursor-pointer"}`}
+                style={{
+                  top: (s0 - open) * PPM,
+                  height: expanded ? undefined : dur * PPM - 4,
+                  minHeight: expanded ? dur * PPM - 4 : undefined,
+                }}
+              >
+                <div className="font-mono-num text-[11.5px] font-medium tabular-nums text-plan data-[layer=actual]:text-actual">
+                  <span className={layer === "actual" ? "text-actual" : "text-plan"}>
+                    {fmt(s0)}–{fmt(e0)}
+                  </span>
+                  <span className="ml-1.5 font-normal text-ink-3">{dur}分</span>
+                  {layer === "actual" && shiftMin !== 0 && (
+                    <span className="ml-1.5 rounded-[4px] bg-actual-soft px-[5px] py-px font-mono-num text-[10.5px] tabular-nums text-actual">
+                      予定より{shiftMin > 0 ? "+" : ""}
+                      {shiftMin}分
+                    </span>
+                  )}
+                </div>
+                <div className="my-px text-[13.5px] font-bold leading-[1.45]">{ev.title}</div>
+                <div className="flex items-center gap-1 text-[11.5px] text-ink-2">
+                  <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                    <path
+                      d="M5 0C3 0 1.6 1.5 1.6 3.4 1.6 5.9 5 10 5 10s3.4-4.1 3.4-6.6C8.4 1.5 7 0 5 0zm0 4.8a1.4 1.4 0 110-2.8 1.4 1.4 0 010 2.8z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                  {ev.place}
+                </div>
+                {ev.photos.length > 0 && (
+                  <div className="mt-[7px] flex gap-[5px]">
+                    {ev.photos.map((p) => (
+                      <span key={p.id} className="relative block h-[45px] w-[60px] shrink-0 overflow-hidden rounded-md bg-surface-2">
+                        <Image src={p.url} alt={ev.title} fill sizes="60px" className="object-cover" />
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {expanded && (
+                  <>
+                    {ev.detail && <div className="mt-[7px] text-[11.5px] leading-[1.65] text-ink-2">{ev.detail}</div>}
+                    {layer === "actual" && ev.caution && (
+                      <div className="mt-2 rounded-[7px] bg-actual-soft px-[9px] py-[7px] text-[11.5px] leading-[1.6] text-ink">
+                        <b className="mb-0.5 block text-[10.5px] tracking-wide text-actual">気をつけること</b>
+                        {ev.caution}
+                      </div>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <a
+                        href={mapUrl(ev.place)}
+                        target="_blank"
+                        rel="noopener"
+                        className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface-3 px-[9px] py-[5px] text-[11px] font-medium text-ink-2"
+                      >
+                        📍 Googleマップで見る
+                      </a>
+                      {ev.category === "food" && (
+                        <a
+                          href={tabelogUrl(ev.place)}
+                          target="_blank"
+                          rel="noopener"
+                          className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface-3 px-[9px] py-[5px] text-[11px] font-medium text-ink-2"
+                        >
+                          🍴 食べログで見る
+                        </a>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+
+          {paidFrom != null && day.events[paidFrom] && (
+            <div
+              className="absolute left-11 right-0 rounded-xl border border-money bg-surface p-3.5 text-center shadow-lg"
+              style={{
+                top:
+                  (toMinutes(
+                    (layer === "plan"
+                      ? day.events[paidFrom].planStart
+                      : (day.events[paidFrom].actualStart ?? day.events[paidFrom].planStart)) as string
+                  ) -
+                    open) *
+                    PPM +
+                  16,
+              }}
+            >
+              <span className="mb-1 block font-mono-num text-[22px] font-medium tabular-nums text-money">
+                ¥{trip.priceYen.toLocaleString()}
+              </span>
+              <p className="mb-2.5 text-[12.5px] leading-[1.6] text-ink-2">
+                のこり{day.events.length - paidFrom}件の予定と、
+                <br />
+                ぜんぶの「気をつけること」が読めます
+              </p>
+              <div className="flex flex-col gap-[7px]">
+                <button className="rounded-[10px] bg-money px-5 py-2.5 text-[13.5px] font-bold text-white">
+                  ¥{trip.priceYen.toLocaleString()}で購入する
+                </button>
+                {trip.priceCoin != null && (
+                  <button className="rounded-[10px] border border-coin bg-transparent px-5 py-2.5 text-[13.5px] font-bold text-coin">
+                    🪙 {trip.priceCoin.toLocaleString()}コインで購入する
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2.5 border-t border-line-soft bg-surface px-4 py-3.5">
+        <button
+          onClick={() => {
+            setSaved((v) => !v);
+            setSaveCount((c) => c + (saved ? -1 : 1));
+          }}
+          className={`flex-1 rounded-[11px] py-3 text-[14px] font-bold ${
+            saved ? "bg-surface-2 text-ink-2" : "bg-plan text-white"
+          }`}
+        >
+          {saved ? "保存しました" : "この旅程を保存"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TripHeader({
+  trip,
+  saved,
+  saveCount,
+}: {
+  trip: Trip;
+  saved: boolean;
+  saveCount: number;
+}) {
+  return (
+    <>
+      <div className="flex items-center gap-2.5 border-b border-line-soft px-4 py-3.5">
+        <Link href="/" className="grid h-8 w-8 place-items-center rounded-[9px] border border-line text-ink-2" aria-label="戻る">
+          <svg width="14" height="14" viewBox="0 0 14 14">
+            <path d="M9 1 L3 7 L9 13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+        <h1 className="flex-1 font-display text-[17px] font-semibold">旅程</h1>
+        <Link href={`/trips/${trip.id}/share`} className="grid h-8 w-8 place-items-center rounded-[9px] border border-line text-ink-2" aria-label="共有する">
+          <svg width="15" height="15" viewBox="0 0 16 16">
+            <circle cx="12" cy="3.5" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+            <circle cx="4" cy="8" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+            <circle cx="12" cy="12.5" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+            <path d="M6 7 L10 4.6M6 9 L10 11.4" stroke="currentColor" strokeWidth="1.4" />
+          </svg>
+        </Link>
+      </div>
+      <div className="border-b border-line-soft bg-surface px-4 py-4">
+        <h2 className="mb-2 font-display text-[20px] font-semibold leading-[1.4]">{trip.title}</h2>
+        <div className="mb-[11px] flex flex-wrap gap-1.5">
+          <span className="rounded-full bg-plan-soft px-2.5 py-1 text-[11.5px] font-medium text-plan">#{trip.genre}</span>
+          <span className="rounded-full bg-plan-soft px-2.5 py-1 text-[11.5px] font-medium text-plan">#{trip.daysLabel}</span>
+        </div>
+        <div className="flex items-center gap-2.5 text-[12.5px] text-ink-2">
+          <span className="h-[26px] w-[26px] shrink-0 rounded-full bg-gradient-to-br from-[#8FB4E8] to-[#C79BD8]" />
+          <span>{trip.author.name}</span>
+          <span className="ml-auto font-mono-num text-[12px] tabular-nums">{saveCount}人が保存</span>
+        </div>
+      </div>
+    </>
+  );
+}

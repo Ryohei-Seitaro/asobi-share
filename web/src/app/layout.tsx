@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Zen_Kaku_Gothic_New, Klee_One } from "next/font/google";
+import { Zen_Kaku_Gothic_New, Klee_One, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 
 const bodyFont = Zen_Kaku_Gothic_New({
@@ -15,6 +15,12 @@ const displayFont = Klee_One({
   subsets: ["latin"],
 });
 
+const monoFont = Roboto_Mono({
+  variable: "--font-mono-num",
+  weight: ["400", "500"],
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "asobi-share",
   description: "遊び・旅行シェアアプリ（仮）",
@@ -24,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ja"
-      className={`${bodyFont.variable} ${displayFont.variable} h-full antialiased`}
+      className={`${bodyFont.variable} ${displayFont.variable} ${monoFont.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ClerkProvider>{children}</ClerkProvider>
