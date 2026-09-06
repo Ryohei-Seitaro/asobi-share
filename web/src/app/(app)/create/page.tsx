@@ -1,26 +1,8 @@
 import { SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { getOrCreateUser } from "@/lib/auth";
+import { GENRE_TAXONOMY } from "@/lib/genres";
 import { createTrip } from "./actions";
-
-const GENRES = [
-  "観光",
-  "デート",
-  "合宿",
-  "サークル遊び",
-  "家族旅行",
-  "山登り",
-  "ゴルフ",
-  "釣り",
-  "キャンプ",
-  "海",
-  "川",
-  "湖",
-  "BBQ",
-  "スノボ",
-  "スキー",
-  "ピックルボール",
-];
 
 export default async function CreatePage() {
   const user = await getOrCreateUser();
@@ -95,7 +77,7 @@ export default async function CreatePage() {
         </div>
         <div>
           <label htmlFor="genre" className="mb-1.5 block text-[11px] tracking-wide text-ink-3">
-            ジャンル
+            ジャンル（カテゴリ ＞ 種類）
           </label>
           <select
             id="genre"
@@ -107,10 +89,14 @@ export default async function CreatePage() {
             <option value="" disabled>
               選んでください
             </option>
-            {GENRES.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
+            {GENRE_TAXONOMY.map((cat) => (
+              <optgroup key={cat.category} label={cat.category}>
+                {cat.subgenres.map((g) => (
+                  <option key={g} value={g}>
+                    {cat.category} ＞ {g}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>

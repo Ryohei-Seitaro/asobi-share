@@ -19,7 +19,6 @@
 
 #### 2026-09-06 CEOフィードバック（7件バッチ・順に対応）
 
-- [ ] [frontend][ui-ux][planning] ③予定作成：ジャンルを「カテゴリ＞サブジャンル」の2階層にする（例：アウトドア→登山） (起票: Seitaro, 2026-09-06)
 - [ ] [frontend][backend][ui-ux][planning] ④予定作成：カレンダー月表示→日付選択→時間選択で日程入力。旅程を日付ベースで保存し日数を自動算出。何月に行ったか表示＋季節フィルタ (起票: Seitaro, 2026-09-06)
 - [ ] [frontend][backend][ui-ux] ⑤見つける：フィルタをジャンル以外（人数・日数・国内/海外など）全条件対応に。前提として「つくる」で人数・日数・国内/海外を入力必須化 (起票: Seitaro, 2026-09-06)
 - [ ] [frontend][ui-ux][planning] ⑥検索：検索ウィザードを「見つける」のフィルタ欄に統合する (起票: Seitaro, 2026-09-06)
@@ -27,6 +26,7 @@
 
 ## 完了
 
+- [x] [frontend][ui-ux][planning] ③ジャンルを「カテゴリ＞サブジャンル」2階層化。`lib/genres.ts`にタクソノミー（定番/遊び・合宿/山・キャンプ/水辺/ウィンター/スポーツ）。見つけるフィルタはカテゴリchips→サブジャンルchipsの2段。つくる/メモ取り込みは`optgroup`付きselect。`trips.genre`は葉のまま保持しDBマイグレーション不要 (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 - [x] [frontend][ui-ux] ②検索：ヘッダーの戻る導線を「とじる」（×アイコン＋テキスト、右寄せ）に変更し、ウィザード内の戻るを「← 前の質問へ」に改名。同じ「戻る」が2つ並んで見える問題を解消 (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 - [x] [frontend][backend][ui-ux] ①見つける：保存した旅程を日程指定してカレンダー（Google / .ics=TimeTree等）に飛ばすボタンを追加。導線「保存→カレンダーに追加しますか？→出発日選択→反映」。`AddToCalendar`モーダル、`lib/tripCalendar.ts`、`/api/trips/[id]/ics?start=`、`addTripToGoogleCalendar` action。TimeTreeは.ics共有取り込みで対応（直接API連携は将来） (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 
