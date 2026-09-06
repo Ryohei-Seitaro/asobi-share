@@ -1,17 +1,26 @@
 import Link from "next/link";
 import Image from "next/image";
 import { SignInButton } from "@clerk/nextjs";
-import { and, desc, eq, lte, or } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trips as tripsTable, tripSaves } from "@/db/schema";
 import { getOrCreateUser } from "@/lib/auth";
 import { ChatSuggest } from "@/components/ChatSuggest";
+import {
+  BUDGET_OPTIONS,
+  INTL_OPTIONS,
+  NIGHTS_OPTIONS,
+  PARTY_OPTIONS,
+  PARTY_RANGE,
+  type IntlKey,
+  type NightsKey,
+  type PartyKey,
+} from "@/lib/trip-filters";
 
 const GENRES = [
   "すべて",
+  "観光",
   "デート",
-  "国内旅行",
-  "海外旅行",
   "合宿",
   "サークル遊び",
   "家族旅行",
@@ -44,16 +53,88 @@ const SORT_COLUMN = {
   likes: tripsTable.likesCount,
 } as const;
 
+type Filters = {
+  genre: string;
+  tab: TabKey;
+  budget: number; // 0 = すべて
+  intl: IntlKey;
+  nights: NightsKey;
+  party: PartyKey;
+};
+
+function hrefFor(base: Filters, overrides: Partial<Filters>): string {
+  const f = { ...base, ...overrides };
+  const qs = new URLSearchParams();
+  if (f.genre !== "すべて") qs.set("genre", f.genre);
+  if (f.tab !== "saves") qs.set("sort", f.tab);
+  if (f.budget) qs.set("budget", String(f.budget));
+  if (f.intl !== "all") qs.set("intl", f.intl);
+  if (f.nights !== "all") qs.set("nights", f.nights);
+  if (f.party !== "all") qs.set("party", f.party);
+  const s = qs.toString();
+  return s ? `/?${s}` : "/";
+}
+
+function FilterChips({
+  label,
+  options,
+  activeKey,
+  hrefFn,
+}: {
+  label: string;
+  options: readonly { key: string; label: string }[];
+  activeKey: string;
+  hrefFn: (key: string) => string;
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 text-[11px] tracking-wide text-ink-3">{label}</p>
+      <div className="scrollbar-none flex gap-[7px] overflow-x-auto pb-0.5">
+        {options.map((o) => (
+          <Link
+            key={o.key}
+            href={hrefFn(o.key)}
+            className={`shrink-0 rounded-full border px-[11px] py-1.5 text-[12px] font-medium ${
+              o.key === activeKey
+                ? "border-plan bg-plan text-white"
+                : "border-line bg-surface-3 text-ink-2"
+            }`}
+          >
+            {o.label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ genre?: string; sort?: string; budget?: string }>;
+  searchParams: Promise<{
+    genre?: string;
+    sort?: string;
+    budget?: string;
+    intl?: string;
+    nights?: string;
+    party?: string;
+  }>;
 }) {
   const params = await searchParams;
   const genre = params.genre ?? "すべて";
   const tab: TabKey = TABS.find((t) => t.key === params.sort)?.key ?? "saves";
   const isPersonalTab = tab === "mine" || tab === "saved";
-  const budget = !isPersonalTab && params.budget ? Number(params.budget) : undefined;
+  const budget = !isPersonalTab && params.budget ? Number(params.budget) : 0;
+  const intl: IntlKey =
+    !isPersonalTab && INTL_OPTIONS.some((o) => o.key === params.intl) ? (params.intl as IntlKey) : "all";
+  const nights: NightsKey =
+    !isPersonalTab && NIGHTS_OPTIONS.some((o) => o.key === params.nights)
+      ? (params.nights as NightsKey)
+      : "all";
+  const party: PartyKey =
+    !isPersonalTab && PARTY_OPTIONS.some((o) => o.key === params.party) ? (params.party as PartyKey) : "all";
+
+  const filters: Filters = { genre, tab, budget, intl, nights, party };
 
   const db = getDb();
   const user = await getOrCreateUser();
@@ -82,7 +163,21 @@ export default async function DiscoverPage({
     const conditions = [
       genre === "すべて" ? undefined : eq(tripsTable.genre, genre),
       budget ? or(eq(tripsTable.priceYen, 0), lte(tripsTable.priceYen, budget)) : undefined,
+      intl === "domestic" ? eq(tripsTable.international, false) : undefined,
+      intl === "international" ? eq(tripsTable.international, true) : undefined,
+      nights === "0" ? eq(tripsTable.nights, 0) : undefined,
+      nights === "1" ? eq(tripsTable.nights, 1) : undefined,
+      nights === "2plus" ? gte(tripsTable.nights, 2) : undefined,
     ].filter((c): c is NonNullable<typeof c> => c !== undefined);
+
+    if (party !== "all") {
+      const [lo, hi] = PARTY_RANGE[party];
+      const partyConditions = [
+        hi != null ? lte(tripsTable.partySizeMin, hi) : undefined,
+        or(isNull(tripsTable.partySizeMax), gte(tripsTable.partySizeMax, lo)),
+      ].filter((c): c is NonNullable<typeof c> => c !== undefined);
+      if (partyConditions.length) conditions.push(and(...partyConditions)!);
+    }
 
     list = await db
       .select()
@@ -98,6 +193,10 @@ export default async function DiscoverPage({
         ).map((r) => r.tripId)
       : []
   );
+
+  const activeFilterCount = [genre !== "すべて", !!budget, intl !== "all", nights !== "all", party !== "all"].filter(
+    Boolean
+  ).length;
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
@@ -124,42 +223,81 @@ export default async function DiscoverPage({
           行き先・キーワードで探す
         </div>
 
-        {budget && (
-          <div className="mx-4 mt-2.5 flex items-center gap-2 rounded-[11px] bg-plan-soft px-3 py-2 text-[12px] text-plan">
-            <span>🔍 検索条件（予算¥{budget.toLocaleString()}以下）に合わせて絞り込み中</span>
-            <Link href="/" className="ml-auto shrink-0 font-bold underline">
-              解除
-            </Link>
-          </div>
-        )}
-
         {!isPersonalTab && (
-          <div className="scrollbar-none flex gap-[7px] overflow-x-auto px-4 pb-1 pt-3.5">
-            {GENRES.map((g) => (
-              <Link
-                key={g}
-                href={g === "すべて" ? "/" : `/?genre=${encodeURIComponent(g)}${tab !== "saves" ? `&sort=${tab}` : ""}`}
-                className={`shrink-0 rounded-full border px-[13px] py-1.5 text-[12.5px] font-medium ${
-                  g === genre
-                    ? "border-plan bg-plan text-white"
-                    : "border-line bg-surface text-ink-2"
-                }`}
+          <details className="group mx-4 mt-2.5 rounded-[13px] border border-line bg-surface">
+            <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-3 text-[13px] font-medium text-ink [&::-webkit-details-marker]:hidden">
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                <path
+                  d="M1.5 3 H12.5 M3.5 7 H10.5 M5.5 11 H8.5"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+              </svg>
+              フィルタ
+              {activeFilterCount > 0 && (
+                <span className="rounded-full bg-plan px-[7px] py-0.5 text-[10.5px] font-bold text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+              {activeFilterCount > 0 && (
+                <Link
+                  href={hrefFor(filters, { genre: "すべて", budget: 0, intl: "all", nights: "all", party: "all" })}
+                  className="text-[12px] font-normal text-ink-3 underline"
+                >
+                  解除
+                </Link>
+              )}
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 11 11"
+                aria-hidden="true"
+                className="ml-auto shrink-0 text-ink-3 transition-transform group-open:rotate-180"
               >
-                {g}
-              </Link>
-            ))}
-          </div>
+                <path d="M1.5 3.5 L5.5 7.5 L9.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </summary>
+            <div className="flex flex-col gap-3 border-t border-line-soft px-3.5 pb-3.5 pt-3">
+              <FilterChips
+                label="ジャンル"
+                options={GENRES.map((g) => ({ key: g, label: g }))}
+                activeKey={genre}
+                hrefFn={(k) => hrefFor(filters, { genre: k })}
+              />
+              <FilterChips
+                label="国内・海外"
+                options={INTL_OPTIONS}
+                activeKey={intl}
+                hrefFn={(k) => hrefFor(filters, { intl: k as IntlKey })}
+              />
+              <FilterChips
+                label="日数"
+                options={NIGHTS_OPTIONS}
+                activeKey={nights}
+                hrefFn={(k) => hrefFor(filters, { nights: k as NightsKey })}
+              />
+              <FilterChips
+                label="人数"
+                options={PARTY_OPTIONS}
+                activeKey={party}
+                hrefFn={(k) => hrefFor(filters, { party: k as PartyKey })}
+              />
+              <FilterChips
+                label="予算"
+                options={BUDGET_OPTIONS}
+                activeKey={String(budget)}
+                hrefFn={(k) => hrefFor(filters, { budget: Number(k) })}
+              />
+            </div>
+          </details>
         )}
 
         <div className="flex flex-wrap gap-[5px] px-4 pb-0.5 pt-2.5">
           {TABS.map((t) => (
             <Link
               key={t.key}
-              href={
-                t.kind === "sort"
-                  ? `/?sort=${t.key}${genre !== "すべて" ? `&genre=${encodeURIComponent(genre)}` : ""}`
-                  : `/?sort=${t.key}`
-              }
+              href={hrefFor(filters, { tab: t.key })}
               className={`rounded-full border px-2.5 py-1 text-[11.5px] font-medium ${
                 t.key === tab
                   ? "border-transparent bg-plan-soft text-plan font-bold"
@@ -183,73 +321,80 @@ export default async function DiscoverPage({
             </SignInButton>
           </div>
         ) : (
-        <div className="flex flex-col gap-3 px-4 pb-5 pt-3">
-          {list.length === 0 && (
-            <p className="px-1 py-5 text-[13px] text-ink-3">
-              {tab === "mine"
-                ? "まだ投稿がありません。「つくる」から最初の旅程を作りましょう。"
-                : tab === "saved"
-                  ? "まだ保存した旅程がありません。気になる旅程を保存しましょう。"
-                  : "このジャンルの旅程はまだありません。"}
-            </p>
-          )}
-          {list.map((trip) => {
-            const metric =
-              tab === "likes"
-                ? `${trip.likesCount} いいね`
-                : tab === "trend"
-                  ? `急上昇 ${trip.trendScore}`
-                  : `${trip.savesCount} 保存`;
-            const photos = trip.coverPhotos.length ? trip.coverPhotos : [];
-            const isSaved = savedTripIds.has(trip.id);
-            return (
-              <Link
-                key={trip.id}
-                href={`/trips/${trip.id}`}
-                className="overflow-hidden rounded-[14px] border border-line bg-surface text-left text-ink"
-              >
-                <div className="relative grid h-[104px] grid-cols-[2fr_1fr_1fr] gap-0.5">
-                  {photos.map((url, i) => (
-                    <span key={i} className="relative block overflow-hidden bg-surface-2">
-                      <Image
-                        src={url}
-                        alt={trip.title}
-                        fill
-                        sizes="200px"
-                        className="object-cover"
-                      />
-                    </span>
-                  ))}
-                  {isSaved && (
-                    <span className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-plan/90 px-2 py-[3px] text-[10.5px] font-bold text-white shadow-sm">
-                      <svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true">
-                        <path d="M2.5 6 L5 8.5 L9.5 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      保存済み
-                    </span>
-                  )}
-                </div>
-                <div className="px-[13px] pb-[13px] pt-[11px]">
-                  <p className="mb-[5px] text-[14px] font-bold leading-[1.45]">{trip.title}</p>
-                  <div className="flex flex-wrap items-center gap-2 text-[11.5px] text-ink-2">
-                    <span className="rounded-[5px] border border-line px-[7px] py-0.5">#{trip.genre}</span>
-                    <span className="rounded-[5px] bg-surface-2 px-[7px] py-0.5 font-mono-num tabular-nums">
-                      {trip.daysLabel}
-                    </span>
-                    <span
-                      className={`rounded-[5px] px-[7px] py-0.5 font-mono-num tabular-nums ${
-                        trip.priceYen ? "bg-money-soft text-money font-medium" : "bg-plan-soft text-plan"
-                      }`}
-                    >
-                      {trip.priceYen ? `¥${trip.priceYen}` : "無料"}
-                    </span>
-                    <span className="ml-auto">{metric}</span>
+          <div className="flex flex-col gap-3 px-4 pb-5 pt-3">
+            {list.length === 0 && (
+              <p className="px-1 py-5 text-[13px] text-ink-3">
+                {tab === "mine"
+                  ? "まだ投稿がありません。「つくる」から最初の旅程を作りましょう。"
+                  : tab === "saved"
+                    ? "まだ保存した旅程がありません。気になる旅程を保存しましょう。"
+                    : "この条件に合う旅程はまだありません。"}
+              </p>
+            )}
+            {list.map((trip) => {
+              const metric =
+                tab === "likes"
+                  ? `${trip.likesCount} いいね`
+                  : tab === "trend"
+                    ? `急上昇 ${trip.trendScore}`
+                    : `${trip.savesCount} 保存`;
+              const photos = trip.coverPhotos.length ? trip.coverPhotos : [];
+              const isSaved = savedTripIds.has(trip.id);
+              return (
+                <Link
+                  key={trip.id}
+                  href={`/trips/${trip.id}`}
+                  className="overflow-hidden rounded-[14px] border border-line bg-surface text-left text-ink"
+                >
+                  <div className="relative grid h-[104px] grid-cols-[2fr_1fr_1fr] gap-0.5">
+                    {photos.map((url, i) => (
+                      <span key={i} className="relative block overflow-hidden bg-surface-2">
+                        <Image
+                          src={url}
+                          alt={trip.title}
+                          fill
+                          sizes="200px"
+                          className="object-cover"
+                        />
+                      </span>
+                    ))}
+                    {isSaved && (
+                      <span className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-plan/90 px-2 py-[3px] text-[10.5px] font-bold text-white shadow-sm">
+                        <svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true">
+                          <path d="M2.5 6 L5 8.5 L9.5 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        保存済み
+                      </span>
+                    )}
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                  <div className="px-[13px] pb-[13px] pt-[11px]">
+                    <p className="mb-[5px] text-[14px] font-bold leading-[1.45]">{trip.title}</p>
+                    <div className="flex flex-wrap items-center gap-2 text-[11.5px] text-ink-2">
+                      <span className="rounded-[5px] border border-line px-[7px] py-0.5">#{trip.genre}</span>
+                      <span className="rounded-[5px] bg-surface-2 px-[7px] py-0.5 font-mono-num tabular-nums">
+                        {trip.daysLabel}
+                      </span>
+                      <span className="rounded-[5px] bg-surface-2 px-[7px] py-0.5">
+                        {trip.international ? "海外" : "国内"}
+                      </span>
+                      <span className="rounded-[5px] bg-surface-2 px-[7px] py-0.5 font-mono-num tabular-nums">
+                        {trip.partySizeMin}
+                        {trip.partySizeMax ? `〜${trip.partySizeMax}` : "〜"}人
+                      </span>
+                      <span
+                        className={`rounded-[5px] px-[7px] py-0.5 font-mono-num tabular-nums ${
+                          trip.priceYen ? "bg-money-soft text-money font-medium" : "bg-plan-soft text-plan"
+                        }`}
+                      >
+                        {trip.priceYen ? `¥${trip.priceYen}` : "無料"}
+                      </span>
+                      <span className="ml-auto">{metric}</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         )}
       </div>
       <ChatSuggest />

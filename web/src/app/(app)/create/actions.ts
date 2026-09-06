@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { trips, tripDays, tripEvents } from "@/db/schema";
 import { getOrCreateUser } from "@/lib/auth";
+import { DAYS_LABEL_TO_NIGHTS } from "@/lib/trip-filters";
 
 export async function createTrip(formData: FormData) {
   const user = await getOrCreateUser();
@@ -14,6 +15,10 @@ export async function createTrip(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const genre = String(formData.get("genre") ?? "").trim();
   const daysLabel = String(formData.get("daysLabel") ?? "日帰り").trim();
+  const international = formData.get("scope") === "international";
+  const partySizeMin = Math.max(1, Number(formData.get("partySizeMin") ?? 1) || 1);
+  const partySizeMaxRaw = String(formData.get("partySizeMax") ?? "").trim();
+  const partySizeMax = partySizeMaxRaw ? Math.max(partySizeMin, Number(partySizeMaxRaw)) : null;
   if (!title || !genre) throw new Error("タイトルとジャンルは必須です");
 
   const db = getDb();
@@ -24,6 +29,10 @@ export async function createTrip(formData: FormData) {
       title,
       genre,
       daysLabel,
+      nights: DAYS_LABEL_TO_NIGHTS[daysLabel] ?? 0,
+      international,
+      partySizeMin,
+      partySizeMax,
       coverPhotos: [],
       visibility: "private",
     })
