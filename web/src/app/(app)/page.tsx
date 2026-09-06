@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { SignInButton } from "@clerk/nextjs";
-import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trips as tripsTable, tripSaves } from "@/db/schema";
 import { getOrCreateUser } from "@/lib/auth";
 import { ChatSuggest } from "@/components/ChatSuggest";
 import { TripCardPhotos } from "@/components/TripCardPhotos";
+import { GENRE_CATEGORIES, subgenresOf, categoryOf, isCategory, isSubgenre } from "@/lib/genres";
 import {
   BUDGET_OPTIONS,
   INTL_OPTIONS,
@@ -16,26 +17,6 @@ import {
   type NightsKey,
   type PartyKey,
 } from "@/lib/trip-filters";
-
-const GENRES = [
-  "すべて",
-  "観光",
-  "デート",
-  "合宿",
-  "サークル遊び",
-  "家族旅行",
-  "山登り",
-  "ゴルフ",
-  "釣り",
-  "キャンプ",
-  "海",
-  "川",
-  "湖",
-  "BBQ",
-  "スノボ",
-  "スキー",
-  "ピックルボール",
-];
 
 const TABS = [
   { key: "saves", label: "保存が多い順", kind: "sort" },
@@ -54,7 +35,8 @@ const SORT_COLUMN = {
 } as const;
 
 type Filters = {
-  genre: string;
+  gcat: string; // ジャンルのカテゴリ（"" = すべて）
+  genre: string; // ジャンルのサブジャンル（"すべて" = カテゴリ内すべて）
   tab: TabKey;
   budget: number; // 0 = すべて
   intl: IntlKey;
@@ -64,7 +46,13 @@ type Filters = {
 
 function hrefFor(base: Filters, overrides: Partial<Filters>): string {
   const f = { ...base, ...overrides };
+  // カテゴリを切り替えたらサブジャンルはリセット / サブジャンルを選んだらカテゴリを追従
+  if (overrides.gcat !== undefined && overrides.genre === undefined) f.genre = "すべて";
+  if (overrides.genre !== undefined && overrides.genre !== "すべて") {
+    f.gcat = categoryOf(overrides.genre) ?? f.gcat;
+  }
   const qs = new URLSearchParams();
+  if (f.gcat) qs.set("gcat", f.gcat);
   if (f.genre !== "すべて") qs.set("genre", f.genre);
   if (f.tab !== "saves") qs.set("sort", f.tab);
   if (f.budget) qs.set("budget", String(f.budget));
@@ -112,6 +100,7 @@ export default async function DiscoverPage({
   searchParams,
 }: {
   searchParams: Promise<{
+    gcat?: string;
     genre?: string;
     sort?: string;
     budget?: string;
@@ -121,9 +110,18 @@ export default async function DiscoverPage({
   }>;
 }) {
   const params = await searchParams;
-  const genre = params.genre ?? "すべて";
   const tab: TabKey = TABS.find((t) => t.key === params.sort)?.key ?? "saves";
   const isPersonalTab = tab === "mine" || tab === "saved";
+  const genre =
+    !isPersonalTab && params.genre && isSubgenre(params.genre) ? params.genre : "すべて";
+  const gcat =
+    isPersonalTab
+      ? ""
+      : genre !== "すべて"
+        ? (categoryOf(genre) ?? "")
+        : params.gcat && isCategory(params.gcat)
+          ? params.gcat
+          : "";
   const budget = !isPersonalTab && params.budget ? Number(params.budget) : 0;
   const intl: IntlKey =
     !isPersonalTab && INTL_OPTIONS.some((o) => o.key === params.intl) ? (params.intl as IntlKey) : "all";
@@ -134,7 +132,7 @@ export default async function DiscoverPage({
   const party: PartyKey =
     !isPersonalTab && PARTY_OPTIONS.some((o) => o.key === params.party) ? (params.party as PartyKey) : "all";
 
-  const filters: Filters = { genre, tab, budget, intl, nights, party };
+  const filters: Filters = { gcat, genre, tab, budget, intl, nights, party };
 
   const db = getDb();
   const user = await getOrCreateUser();
@@ -161,7 +159,11 @@ export default async function DiscoverPage({
     }
   } else {
     const conditions = [
-      genre === "すべて" ? undefined : eq(tripsTable.genre, genre),
+      genre !== "すべて"
+        ? eq(tripsTable.genre, genre)
+        : gcat
+          ? inArray(tripsTable.genre, subgenresOf(gcat))
+          : undefined,
       budget ? or(eq(tripsTable.priceYen, 0), lte(tripsTable.priceYen, budget)) : undefined,
       intl === "domestic" ? eq(tripsTable.international, false) : undefined,
       intl === "international" ? eq(tripsTable.international, true) : undefined,
@@ -194,9 +196,13 @@ export default async function DiscoverPage({
       : []
   );
 
-  const activeFilterCount = [genre !== "すべて", !!budget, intl !== "all", nights !== "all", party !== "all"].filter(
-    Boolean
-  ).length;
+  const activeFilterCount = [
+    genre !== "すべて" || !!gcat,
+    !!budget,
+    intl !== "all",
+    nights !== "all",
+    party !== "all",
+  ].filter(Boolean).length;
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
@@ -242,7 +248,7 @@ export default async function DiscoverPage({
               )}
               {activeFilterCount > 0 && (
                 <Link
-                  href={hrefFor(filters, { genre: "すべて", budget: 0, intl: "all", nights: "all", party: "all" })}
+                  href={hrefFor(filters, { gcat: "", genre: "すべて", budget: 0, intl: "all", nights: "all", party: "all" })}
                   className="text-[12px] font-normal text-ink-3 underline"
                 >
                   解除
@@ -260,11 +266,22 @@ export default async function DiscoverPage({
             </summary>
             <div className="flex flex-col gap-3 border-t border-line-soft px-3.5 pb-3.5 pt-3">
               <FilterChips
-                label="ジャンル"
-                options={GENRES.map((g) => ({ key: g, label: g }))}
-                activeKey={genre}
-                hrefFn={(k) => hrefFor(filters, { genre: k })}
+                label="ジャンル（カテゴリ）"
+                options={[{ key: "", label: "すべて" }, ...GENRE_CATEGORIES.map((c) => ({ key: c, label: c }))]}
+                activeKey={gcat}
+                hrefFn={(k) => hrefFor(filters, { gcat: k })}
               />
+              {gcat && (
+                <FilterChips
+                  label={`${gcat} のなかで`}
+                  options={[
+                    { key: "すべて", label: `${gcat}すべて` },
+                    ...subgenresOf(gcat).map((g) => ({ key: g, label: g })),
+                  ]}
+                  activeKey={genre}
+                  hrefFn={(k) => hrefFor(filters, { genre: k })}
+                />
+              )}
               <FilterChips
                 label="国内・海外"
                 options={INTL_OPTIONS}

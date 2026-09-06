@@ -5,26 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createTripFromMemo } from "@/app/(app)/create/actions";
 import { parseMemoText, toMinutes, fmt, type ParsedMemoDay } from "@/lib/memoParser";
-
-const GENRES = [
-  "デート",
-  "国内旅行",
-  "海外旅行",
-  "合宿",
-  "サークル遊び",
-  "家族旅行",
-  "山登り",
-  "ゴルフ",
-  "釣り",
-  "キャンプ",
-  "海",
-  "川",
-  "湖",
-  "BBQ",
-  "スノボ",
-  "スキー",
-  "ピックルボール",
-];
+import { GENRE_TAXONOMY, ALL_SUBGENRES } from "@/lib/genres";
 
 // Server Actionのredirect()は例外として実装されているため、try/catchで誤って
 // 握りつぶさないよう再スローする（Next.js公式の回避パターン）。
@@ -50,7 +31,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
 export function MemoImportView() {
   const router = useRouter();
   const [text, setText] = useState("");
-  const [genre, setGenre] = useState(GENRES[0]);
+  const [genre, setGenre] = useState(ALL_SUBGENRES[0]);
   const [photos, setPhotos] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -139,16 +120,20 @@ export function MemoImportView() {
           className="mb-4 min-h-[160px] w-full resize-y rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
         />
 
-        <label className="mb-1.5 block text-[11px] tracking-wide text-ink-3">ジャンル</label>
+        <label className="mb-1.5 block text-[11px] tracking-wide text-ink-3">ジャンル（カテゴリ ＞ 種類）</label>
         <select
           value={genre}
           onChange={(e) => setGenre(e.target.value)}
           className="mb-4 w-full rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
         >
-          {GENRES.map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
+          {GENRE_TAXONOMY.map((cat) => (
+            <optgroup key={cat.category} label={cat.category}>
+              {cat.subgenres.map((g) => (
+                <option key={g} value={g}>
+                  {cat.category} ＞ {g}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
 
