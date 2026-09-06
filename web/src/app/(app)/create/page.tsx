@@ -131,25 +131,30 @@ export default async function CreatePage() {
           </select>
         </div>
         <div>
-          <span className="mb-1.5 block text-[11px] tracking-wide text-ink-3">国内・海外</span>
+          <span className="mb-1.5 block text-[11px] tracking-wide text-ink-3">
+            国内・海外 <span className="text-plan">必須</span>
+          </span>
           <div className="flex gap-[9px]">
             <label className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border border-line bg-surface-3 py-[9px] text-[13.5px] text-ink has-[:checked]:border-plan has-[:checked]:bg-plan-soft has-[:checked]:font-bold has-[:checked]:text-plan">
-              <input type="radio" name="scope" value="domestic" defaultChecked className="sr-only" />
+              <input type="radio" name="scope" value="domestic" required className="sr-only" />
               国内
             </label>
             <label className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border border-line bg-surface-3 py-[9px] text-[13.5px] text-ink has-[:checked]:border-plan has-[:checked]:bg-plan-soft has-[:checked]:font-bold has-[:checked]:text-plan">
-              <input type="radio" name="scope" value="international" className="sr-only" />
+              <input type="radio" name="scope" value="international" required className="sr-only" />
               海外
             </label>
           </div>
         </div>
         <div>
-          <span className="mb-1.5 block text-[11px] tracking-wide text-ink-3">おすすめの人数</span>
+          <span className="mb-1.5 block text-[11px] tracking-wide text-ink-3">
+            おすすめの人数 <span className="text-plan">必須</span>
+          </span>
           <div className="flex items-center gap-2">
             <input
               type="number"
               name="partySizeMin"
               min={1}
+              required
               defaultValue={1}
               aria-label="最少人数"
               className="w-full rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
@@ -165,6 +170,7 @@ export default async function CreatePage() {
             />
             <span className="shrink-0 text-[12.5px] text-ink-3">人</span>
           </div>
+          <p className="mt-1 text-[10.5px] text-ink-3">国内・海外／人数は「見つける」のフィルタで使われます。</p>
         </div>
         <button type="submit" className="mt-auto rounded-xl bg-plan py-3.5 text-[14px] font-bold text-white">
           つぎへ（予定を置く）

@@ -33,6 +33,9 @@ export function MemoImportView() {
   const [text, setText] = useState("");
   const [genre, setGenre] = useState(ALL_SUBGENRES[0]);
   const [startDate, setStartDate] = useState("");
+  const [international, setInternational] = useState(false);
+  const [partySizeMin, setPartySizeMin] = useState(2);
+  const [partySizeMax, setPartySizeMax] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -61,6 +64,9 @@ export function MemoImportView() {
           title: parsed.title,
           genre,
           startDate: startDate || null,
+          international,
+          partySizeMin,
+          partySizeMax: partySizeMax ? Number(partySizeMax) : null,
           coverPhotos: photos,
           days: parsed.days.map((d) => ({
             dateLabel: d.dateLabel,
@@ -146,6 +152,51 @@ export function MemoImportView() {
             </optgroup>
           ))}
         </select>
+
+        <label className="mb-1.5 block text-[11px] tracking-wide text-ink-3">国内・海外</label>
+        <div className="mb-4 flex gap-[9px]">
+          {([
+            ["国内", false],
+            ["海外", true],
+          ] as const).map(([label, val]) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setInternational(val)}
+              className={`flex-1 rounded-[9px] border py-[9px] text-[13.5px] ${
+                international === val
+                  ? "border-plan bg-plan-soft font-bold text-plan"
+                  : "border-line bg-surface-3 text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <label className="mb-1.5 block text-[11px] tracking-wide text-ink-3">おすすめの人数</label>
+        <div className="mb-1 flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            value={partySizeMin}
+            onChange={(e) => setPartySizeMin(Math.max(1, Number(e.target.value) || 1))}
+            aria-label="最少人数"
+            className="w-full rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
+          />
+          <span className="shrink-0 text-[12.5px] text-ink-3">人 〜</span>
+          <input
+            type="number"
+            min={1}
+            value={partySizeMax}
+            onChange={(e) => setPartySizeMax(e.target.value)}
+            placeholder="上限なし"
+            aria-label="最大人数"
+            className="w-full rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
+          />
+          <span className="shrink-0 text-[12.5px] text-ink-3">人</span>
+        </div>
+        <p className="mb-4 text-[10.5px] text-ink-3">「見つける」のフィルタで使われます。</p>
 
         <label className="mb-1.5 block text-[11px] tracking-wide text-ink-3">写真（枚数の上限なし）</label>
         <div className="mb-4 flex flex-wrap gap-2">

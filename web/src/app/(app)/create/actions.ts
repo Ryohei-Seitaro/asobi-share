@@ -26,11 +26,16 @@ export async function createTrip(formData: FormData) {
   const genre = String(formData.get("genre") ?? "").trim();
   const daysLabel = String(formData.get("daysLabel") ?? "日帰り").trim();
   const startDate = normalizeStartDate(formData.get("startDate"));
-  const international = formData.get("scope") === "international";
-  const partySizeMin = Math.max(1, Number(formData.get("partySizeMin") ?? 1) || 1);
+  const scope = String(formData.get("scope") ?? "");
+  const international = scope === "international";
+  const partySizeMinRaw = Number(formData.get("partySizeMin"));
+  const partySizeMin = Number.isFinite(partySizeMinRaw) ? Math.max(1, Math.floor(partySizeMinRaw)) : 0;
   const partySizeMaxRaw = String(formData.get("partySizeMax") ?? "").trim();
   const partySizeMax = partySizeMaxRaw ? Math.max(partySizeMin, Number(partySizeMaxRaw)) : null;
   if (!title || !genre) throw new Error("タイトルとジャンルは必須です");
+  // 見つけるフィルタの前提データなので、国内/海外と人数は必須
+  if (scope !== "domestic" && scope !== "international") throw new Error("国内・海外を選んでください");
+  if (partySizeMin < 1) throw new Error("おすすめの人数を入力してください");
 
   const db = getDb();
   const [trip] = await db
@@ -66,6 +71,9 @@ export async function createTripFromMemo(data: {
   title: string;
   genre: string;
   startDate?: string | null;
+  international: boolean;
+  partySizeMin: number;
+  partySizeMax?: number | null;
   coverPhotos: string[];
   days: {
     dateLabel: string;
@@ -78,7 +86,13 @@ export async function createTripFromMemo(data: {
   const title = data.title.trim();
   const genre = data.genre.trim();
   const startDate = normalizeStartDate(data.startDate);
+  const partySizeMin = Number.isFinite(data.partySizeMin) ? Math.max(1, Math.floor(data.partySizeMin)) : 0;
+  const partySizeMax =
+    data.partySizeMax != null && Number.isFinite(data.partySizeMax)
+      ? Math.max(partySizeMin, Math.floor(data.partySizeMax))
+      : null;
   if (!title || !genre) throw new Error("タイトルとジャンルは必須です");
+  if (partySizeMin < 1) throw new Error("おすすめの人数を入力してください");
 
   const db = getDb();
   const dayList = data.days.length > 0 ? data.days : [{ dateLabel: "", events: [] }];
@@ -92,6 +106,9 @@ export async function createTripFromMemo(data: {
       title,
       genre,
       startDate,
+      international: data.international,
+      partySizeMin,
+      partySizeMax,
       daysLabel,
       nights,
       coverPhotos: data.coverPhotos,
