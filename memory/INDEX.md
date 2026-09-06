@@ -6,6 +6,7 @@
 
 新しい順に追記する。
 
+- [2026-09-06 hqのGit運用ルールを導入（ブランチ＋PR＋squash merge）](20260906_adopt-git-workflow.md) — PRテンプレ・settings.json許可・CLAUDE.md追記（開発スピード優先、CI・マージゲートなし）
 - [2026-09-06 Seitaro実装とのマージ、及び見つける画面フィルタ用データのバックフィル](20260906_merge-with-seitaro-and-trip-filter-backfill.md) — mainでのコンフリクト解消、import欠落バグの発見・修正、既存データのバックフィル
 - [2026-09-06 メモ取り込みの不具合修正、Googleカレンダー直接登録（OAuth）、有料ラインのドラッグ移動](20260906_memo-fixes-and-gcal-oauth-and-paid-line-drag.md) — 写真枚数/サイズ制限撤廃、複数日パース修正、GCal OAuth連携、有料ラインドラッグ化
 - [2026-09-06 メモ取り込みのタイムラインプレビューと予定ごとのマップ/食べログURL入力](20260906_memo-preview-and-place-links.md) — メモ画面に投稿前タイムラインプレビュー追加、予定にGoogleマップ/食べログURLを直接入力できるように
