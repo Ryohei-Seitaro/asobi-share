@@ -10,7 +10,9 @@ import {
   publishTrip,
   pushTripToGoogleCalendar,
   setPaidFrom,
+  setTripStartDate,
 } from "@/app/(app)/create/actions";
+import { monthSeasonLabel } from "@/lib/trip-filters";
 
 type TripEvent = InferSelectModel<typeof tripEvents>;
 type TripDay = InferSelectModel<typeof tripDays> & { events: TripEvent[] };
@@ -41,6 +43,7 @@ export function TripEditor({ trip }: { trip: Trip }) {
   const paidDraggingRef = useRef(false);
   const [showPrice, setShowPrice] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [startDate, setStartDate] = useState<string>(trip.startDate ?? "");
   const [priceMode, setPriceMode] = useState<"free" | "paid">(trip.priceYen > 0 ? "paid" : "free");
   const [priceYen, setPriceYen] = useState(trip.priceYen || 480);
   const [visibility, setVisibility] = useState<"public" | "friends" | "private">(trip.visibility);
@@ -178,6 +181,30 @@ export function TripEditor({ trip }: { trip: Trip }) {
             />
           </svg>
         </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-surface px-4 pt-2.5">
+        <label className="flex items-center gap-1.5 text-[12px] text-ink-3">
+          出発日
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => {
+              const v = e.target.value;
+              setStartDate(v);
+              startTransition(() => setTripStartDate(trip.id, v || null));
+            }}
+            className="rounded-[7px] border border-line bg-surface-3 px-2 py-1 text-[12px] text-ink"
+          />
+        </label>
+        {monthSeasonLabel(startDate || null) && (
+          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-ink-2">
+            {monthSeasonLabel(startDate || null)}
+          </span>
+        )}
+        <span className="text-[11px] text-ink-3">
+          日数：{trip.daysLabel}（DAY数から自動）
+        </span>
       </div>
 
       <div className="flex gap-1 bg-surface px-4 pt-2.5">

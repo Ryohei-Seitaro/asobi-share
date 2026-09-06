@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SignInButton } from "@clerk/nextjs";
-import { and, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trips as tripsTable, tripSaves } from "@/db/schema";
 import { getOrCreateUser } from "@/lib/auth";
@@ -13,9 +13,13 @@ import {
   NIGHTS_OPTIONS,
   PARTY_OPTIONS,
   PARTY_RANGE,
+  SEASON_OPTIONS,
+  SEASON_MONTHS,
+  monthSeasonLabel,
   type IntlKey,
   type NightsKey,
   type PartyKey,
+  type SeasonKey,
 } from "@/lib/trip-filters";
 
 const TABS = [
@@ -42,6 +46,7 @@ type Filters = {
   intl: IntlKey;
   nights: NightsKey;
   party: PartyKey;
+  season: SeasonKey;
 };
 
 function hrefFor(base: Filters, overrides: Partial<Filters>): string {
@@ -59,6 +64,7 @@ function hrefFor(base: Filters, overrides: Partial<Filters>): string {
   if (f.intl !== "all") qs.set("intl", f.intl);
   if (f.nights !== "all") qs.set("nights", f.nights);
   if (f.party !== "all") qs.set("party", f.party);
+  if (f.season !== "all") qs.set("season", f.season);
   const s = qs.toString();
   return s ? `/?${s}` : "/";
 }
@@ -107,6 +113,7 @@ export default async function DiscoverPage({
     intl?: string;
     nights?: string;
     party?: string;
+    season?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -131,8 +138,12 @@ export default async function DiscoverPage({
       : "all";
   const party: PartyKey =
     !isPersonalTab && PARTY_OPTIONS.some((o) => o.key === params.party) ? (params.party as PartyKey) : "all";
+  const season: SeasonKey =
+    !isPersonalTab && SEASON_OPTIONS.some((o) => o.key === params.season)
+      ? (params.season as SeasonKey)
+      : "all";
 
-  const filters: Filters = { gcat, genre, tab, budget, intl, nights, party };
+  const filters: Filters = { gcat, genre, tab, budget, intl, nights, party, season };
 
   const db = getDb();
   const user = await getOrCreateUser();
@@ -170,6 +181,9 @@ export default async function DiscoverPage({
       nights === "0" ? eq(tripsTable.nights, 0) : undefined,
       nights === "1" ? eq(tripsTable.nights, 1) : undefined,
       nights === "2plus" ? gte(tripsTable.nights, 2) : undefined,
+      season !== "all"
+        ? inArray(sql<number>`extract(month from ${tripsTable.startDate})::int`, SEASON_MONTHS[season])
+        : undefined,
     ].filter((c): c is NonNullable<typeof c> => c !== undefined);
 
     if (party !== "all") {
@@ -202,6 +216,7 @@ export default async function DiscoverPage({
     intl !== "all",
     nights !== "all",
     party !== "all",
+    season !== "all",
   ].filter(Boolean).length;
 
   return (
@@ -248,7 +263,7 @@ export default async function DiscoverPage({
               )}
               {activeFilterCount > 0 && (
                 <Link
-                  href={hrefFor(filters, { gcat: "", genre: "すべて", budget: 0, intl: "all", nights: "all", party: "all" })}
+                  href={hrefFor(filters, { gcat: "", genre: "すべて", budget: 0, intl: "all", nights: "all", party: "all", season: "all" })}
                   className="text-[12px] font-normal text-ink-3 underline"
                 >
                   解除
@@ -299,6 +314,12 @@ export default async function DiscoverPage({
                 options={PARTY_OPTIONS}
                 activeKey={party}
                 hrefFn={(k) => hrefFor(filters, { party: k as PartyKey })}
+              />
+              <FilterChips
+                label="季節（行った月）"
+                options={SEASON_OPTIONS}
+                activeKey={season}
+                hrefFn={(k) => hrefFor(filters, { season: k as SeasonKey })}
               />
               <FilterChips
                 label="予算"
@@ -371,6 +392,11 @@ export default async function DiscoverPage({
                       <span className="rounded-[5px] bg-surface-2 px-[7px] py-0.5 font-mono-num tabular-nums">
                         {trip.daysLabel}
                       </span>
+                      {monthSeasonLabel(trip.startDate) && (
+                        <span className="rounded-[5px] bg-surface-2 px-[7px] py-0.5">
+                          {monthSeasonLabel(trip.startDate)}
+                        </span>
+                      )}
                       <span className="rounded-[5px] bg-surface-2 px-[7px] py-0.5">
                         {trip.international ? "海外" : "国内"}
                       </span>
