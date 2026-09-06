@@ -19,11 +19,11 @@
 
 #### 2026-09-06 CEOフィードバック（7件バッチ・順に対応）
 
-- [ ] [frontend][ui-ux][planning] ⑥検索：検索ウィザードを「見つける」のフィルタ欄に統合する (起票: Seitaro, 2026-09-06)
 - [ ] [frontend][backend][ui-ux] ⑦見つける：有料記事のコイン購入UIが出てこない。note風の導線に（基本情報→有料区切り→購入ボタン→コイン支払い／不足時チャージ→全文表示） (起票: Seitaro, 2026-09-06)
 
 ## 完了
 
+- [x] [frontend][ui-ux][planning] ⑥検索ウィザードを「見つける」のフィルタ欄に統合。`/search` は `/` へリダイレクト化、ボトムナビから「検索」タブを削除、見つけるヘッダーの虫めがねリンクを撤去。「行き先・キーワードで探す」を実際に効く GET フォーム化（`?q=` で title/genre を ilike 検索、現フィルタは hidden で維持）。フィルタが効いているときは `<details>` を開いた状態に (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 - [x] [frontend][backend][ui-ux] ⑤フィルタは①③④でジャンル2階層・国内海外・日数・人数・予算・季節まで対応済み。残りの「つくるで必須入力化」を実施：つくる新規フォームで国内/海外・人数を必須（`required`＋サーバ側バリデーション）、メモ取り込みにも国内/海外・人数の入力欄を追加。日数はDAY数から自動（④）なので手動必須からは外した (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 - [x] [frontend][backend][ui-ux][planning] ④旅程を日付ベースに。`trips.start_date`（date, nullable）を追加、DAY数から日数（nights/daysLabel）を自動算出、開始月で季節を判定。見つけるに季節フィルタ、カード/詳細に「◯月・季」バッジ、つくる新規/編集/メモ取り込みに `type=date` 入力。**要 `drizzle-kit push`**（`memory/20260906_date-based-itinerary.md`） (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 - [x] [frontend][ui-ux][planning] ③ジャンルを「カテゴリ＞サブジャンル」2階層化。`lib/genres.ts`にタクソノミー（定番/遊び・合宿/山・キャンプ/水辺/ウィンター/スポーツ）。見つけるフィルタはカテゴリchips→サブジャンルchipsの2段。つくる/メモ取り込みは`optgroup`付きselect。`trips.genre`は葉のまま保持しDBマイグレーション不要 (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)

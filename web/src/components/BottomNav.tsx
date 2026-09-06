@@ -15,16 +15,6 @@ const ITEMS = [
     ),
   },
   {
-    href: "/search",
-    label: "検索",
-    icon: (
-      <svg width="19" height="19" viewBox="0 0 20 20" aria-hidden="true">
-        <circle cx="8.5" cy="8.5" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M13 13 L17.5 17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
     href: "/create",
     label: "つくる",
     icon: (
