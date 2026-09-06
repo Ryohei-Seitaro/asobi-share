@@ -72,8 +72,6 @@ export function TripDetail({
       const result = await toggleSave(trip.id);
       setSaved(result.saved);
       setSaveCount(result.savesCount);
-      // 保存した直後に「カレンダーに追加しますか？」を出す
-      if (result.saved) setCalOpen(true);
     });
   }
 
