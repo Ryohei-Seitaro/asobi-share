@@ -15,6 +15,7 @@
 - [ ] [backend][network-security] 認証必須ページ（つくる・マイページ・購入系API）の保護をClerkのリソースベース認証チェックに揃える（`createRouteMatcher`は非推奨警告が出ている） (起票: 久野, 2026-09-05)
 - [ ] [qa] 本番デプロイ前の一通りのQA（主要導線の動作確認・レスポンシブ確認） (起票: 久野, 2026-09-05)
 - [ ] [infra][backend] Google Calendar連携の本番運用に向けて、Clerk DashboardでGoogleソーシャル接続を独自クレデンシャル化し`calendar.events`スコープを追加する（Google Cloud ConsoleでのOAuthクライアント作成・Calendar API有効化を含む） (起票: 久野, 2026-09-06)
+- [ ] [backend] Seitaro側のローカル/開発DBでも`web/scripts/backfill-trip-filters.ts`を実行し、既存tripsのnights/international/partySize系が正しい値になっているか確認する (起票: 久野, 2026-09-06)
 
 ## 完了
 
