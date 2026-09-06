@@ -7,6 +7,7 @@ import { SignInButton } from "@clerk/nextjs";
 import type { InferSelectModel } from "drizzle-orm";
 import type { trips, tripDays, tripEvents, eventPhotos, users } from "@/db/schema";
 import { purchaseTrip, toggleLike, toggleSave } from "@/app/(app)/trips/[id]/actions";
+import { AddToCalendar } from "@/components/AddToCalendar";
 
 type EventPhoto = InferSelectModel<typeof eventPhotos>;
 type TripEvent = InferSelectModel<typeof tripEvents> & { photos: EventPhoto[] };
@@ -61,6 +62,7 @@ export function TripDetail({
   const [likeCount, setLikeCount] = useState(trip.likesCount);
   const [purchased, setPurchased] = useState(initialPurchased);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [calOpen, setCalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function handleToggleSave() {
@@ -68,6 +70,8 @@ export function TripDetail({
       const result = await toggleSave(trip.id);
       setSaved(result.saved);
       setSaveCount(result.savesCount);
+      // 保存した直後に「カレンダーに追加しますか？」を出す
+      if (result.saved) setCalOpen(true);
     });
   }
 
@@ -111,7 +115,15 @@ export function TripDetail({
           saved={saved}
           onToggleLike={handleToggleLike}
           onToggleSave={handleToggleSave}
+          onCalendar={() => setCalOpen(true)}
         />
+        {calOpen && (
+          <AddToCalendar
+            tripId={trip.id}
+            dayCount={trip.days.length || 1}
+            onClose={() => setCalOpen(false)}
+          />
+        )}
       </div>
     );
   }
@@ -356,7 +368,15 @@ export function TripDetail({
         saved={saved}
         onToggleLike={handleToggleLike}
         onToggleSave={handleToggleSave}
+        onCalendar={() => setCalOpen(true)}
       />
+      {calOpen && (
+        <AddToCalendar
+          tripId={trip.id}
+          dayCount={trip.days.length || 1}
+          onClose={() => setCalOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -369,6 +389,7 @@ function SaveLikeBar({
   saved,
   onToggleLike,
   onToggleSave,
+  onCalendar,
 }: {
   isLoggedIn: boolean;
   isPending: boolean;
@@ -377,6 +398,7 @@ function SaveLikeBar({
   saved: boolean;
   onToggleLike: () => void;
   onToggleSave: () => void;
+  onCalendar: () => void;
 }) {
   return (
     <div className="flex items-center gap-2.5 border-t border-line-soft bg-surface px-4 py-3.5">
@@ -397,6 +419,16 @@ function SaveLikeBar({
           />
         </svg>
         {likeCount}
+      </button>
+      <button
+        onClick={onCalendar}
+        aria-label="カレンダーに追加"
+        className="flex shrink-0 items-center justify-center rounded-[11px] border border-line px-3.5 py-3 text-ink-2"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <rect x="2" y="3" width="12" height="11" rx="1.6" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M2 6.5 H14 M5.5 1.5 V4 M10.5 1.5 V4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
       </button>
       {isLoggedIn ? (
         <button

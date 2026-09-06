@@ -2,9 +2,12 @@
 
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { clerkClient } from "@clerk/nextjs/server";
 import { getDb } from "@/db";
 import { trips, tripSaves, tripLikes, tripPurchases, coinBalances, coinTransactions } from "@/db/schema";
 import { getOrCreateUser } from "@/lib/auth";
+import { insertCalendarEvent } from "@/lib/googleCalendar";
+import { buildTripCalendarEvents } from "@/lib/tripCalendar";
 
 export async function toggleSave(tripId: string): Promise<{ saved: boolean; savesCount: number }> {
   const user = await getOrCreateUser();
@@ -56,6 +59,54 @@ export async function toggleLike(tripId: string): Promise<{ liked: boolean; like
   revalidatePath(`/trips/${tripId}`);
   revalidatePath("/");
   return { liked, likesCount: row.likesCount };
+}
+
+// 保存した旅程を、指定した開始日でユーザーのGoogleカレンダーに一括登録する。
+// 事前にClerk側でGoogleソーシャル接続に calendar.events スコープを追加している必要がある。
+export async function addTripToGoogleCalendar(
+  tripId: string,
+  startIso: string
+): Promise<{ ok: true; created: number; failed: number } | { ok: false; error: string }> {
+  const user = await getOrCreateUser();
+  if (!user) return { ok: false, error: "ログインが必要です" };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startIso)) return { ok: false, error: "日付の形式が正しくありません" };
+
+  const client = await clerkClient();
+  const tokenList = await client.users.getUserOauthAccessToken(user.id, "google");
+  const accessToken = tokenList.data[0]?.token;
+  if (!accessToken) {
+    return {
+      ok: false,
+      error:
+        "Googleカレンダーへのアクセス許可が見つかりません。Googleアカウントでログインし直し、カレンダーへのアクセスを許可してください。",
+    };
+  }
+
+  const events = await buildTripCalendarEvents(tripId, startIso);
+  if (events.length === 0) return { ok: false, error: "登録できる予定がありません" };
+
+  let created = 0;
+  let failed = 0;
+  for (const ev of events) {
+    const result = await insertCalendarEvent(accessToken, {
+      title: ev.title,
+      location: ev.location,
+      description: ev.description,
+      dateStr: ev.dateIso,
+      startHHMM: ev.startHHMM,
+      endHHMM: ev.endHHMM,
+    });
+    if (result.ok) created++;
+    else failed++;
+  }
+
+  if (created === 0 && failed > 0) {
+    return {
+      ok: false,
+      error: "Googleカレンダーへの登録にすべて失敗しました。カレンダーへのアクセス許可を確認してください。",
+    };
+  }
+  return { ok: true, created, failed };
 }
 
 export async function purchaseTrip(
