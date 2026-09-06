@@ -71,14 +71,21 @@ export async function addTripToGoogleCalendar(
   if (!user) return { ok: false, error: "ログインが必要です" };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startIso)) return { ok: false, error: "日付の形式が正しくありません" };
 
-  const client = await clerkClient();
-  const tokenList = await client.users.getUserOauthAccessToken(user.id, "google");
-  const accessToken = tokenList.data[0]?.token;
+  let accessToken: string | undefined;
+  try {
+    const client = await clerkClient();
+    const tokenList = await client.users.getUserOauthAccessToken(user.id, "google");
+    accessToken = tokenList.data[0]?.token;
+  } catch {
+    // Clerk側のGoogle連携が独自クレデンシャル化されていない / calendar.events スコープ未設定だと
+    // oauth_token_retrieval_error で失敗する。落とさずに .ics 案内へ誘導する。
+    accessToken = undefined;
+  }
   if (!accessToken) {
     return {
       ok: false,
       error:
-        "Googleカレンダーへのアクセス許可が見つかりません。Googleアカウントでログインし直し、カレンダーへのアクセスを許可してください。",
+        "Googleカレンダーへの直接登録はまだ準備中です。下の「.icsファイルを保存」からカレンダーに取り込んでください。",
     };
   }
 
@@ -88,22 +95,27 @@ export async function addTripToGoogleCalendar(
   let created = 0;
   let failed = 0;
   for (const ev of events) {
-    const result = await insertCalendarEvent(accessToken, {
-      title: ev.title,
-      location: ev.location,
-      description: ev.description,
-      dateStr: ev.dateIso,
-      startHHMM: ev.startHHMM,
-      endHHMM: ev.endHHMM,
-    });
-    if (result.ok) created++;
-    else failed++;
+    try {
+      const result = await insertCalendarEvent(accessToken, {
+        title: ev.title,
+        location: ev.location,
+        description: ev.description,
+        dateStr: ev.dateIso,
+        startHHMM: ev.startHHMM,
+        endHHMM: ev.endHHMM,
+      });
+      if (result.ok) created++;
+      else failed++;
+    } catch {
+      failed++;
+    }
   }
 
   if (created === 0 && failed > 0) {
     return {
       ok: false,
-      error: "Googleカレンダーへの登録にすべて失敗しました。カレンダーへのアクセス許可を確認してください。",
+      error:
+        "Googleカレンダーへの登録に失敗しました。「.icsファイルを保存」からの取り込みをお試しください。",
     };
   }
   return { ok: true, created, failed };
