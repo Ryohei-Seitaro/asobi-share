@@ -32,13 +32,20 @@ export default function SearchPage() {
   const router = useRouter();
   const [stepIdx, setStepIdx] = useState(0);
   const [answers, setAnswers] = useState<Partial<Record<Field, string>>>({});
+  const [freeInputs, setFreeInputs] = useState<Partial<Record<Field, string>>>({});
+  const [showFree, setShowFree] = useState(false);
 
   const isWeatherStep = stepIdx === STEPS.length;
   const step = isWeatherStep ? null : STEPS[stepIdx];
 
+  function goToStep(i: number) {
+    setShowFree(false);
+    setStepIdx(Math.max(0, Math.min(i, TOTAL_STEPS - 1)));
+  }
+
   function choose(field: Field, value: string) {
     setAnswers((a) => ({ ...a, [field]: value }));
-    setTimeout(() => setStepIdx((i) => Math.min(i + 1, TOTAL_STEPS - 1)), 220);
+    setTimeout(() => goToStep(stepIdx + 1), 220);
   }
 
   function submit() {
@@ -83,7 +90,7 @@ export default function SearchPage() {
         <div key={stepIdx} className="flex flex-1 flex-col motion-safe:animate-[wizIn_0.32s_cubic-bezier(0.3,0.7,0.3,1)]">
           {stepIdx > 0 && (
             <button
-              onClick={() => setStepIdx((i) => Math.max(i - 1, 0))}
+              onClick={() => goToStep(stepIdx - 1)}
               className="mb-4 flex-none self-start text-[12.5px] text-ink-3"
             >
               ← 戻る
@@ -97,11 +104,14 @@ export default function SearchPage() {
               )}
               <div className="flex flex-col gap-[9px]">
                 {step.options.map((opt) => {
-                  const active = answers[step.field] === opt;
+                  const active = !showFree && answers[step.field] === opt;
                   return (
                     <button
                       key={opt}
-                      onClick={() => choose(step.field, opt)}
+                      onClick={() => {
+                        setShowFree(false);
+                        choose(step.field, opt);
+                      }}
                       className={`flex items-center justify-between rounded-xl border px-4 py-[14px] text-left text-[14.5px] font-medium ${
                         active ? "border-plan bg-plan-soft text-plan font-bold" : "border-line bg-surface text-ink"
                       }`}
@@ -125,6 +135,41 @@ export default function SearchPage() {
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="mt-3">
+                {!showFree ? (
+                  <button
+                    onClick={() => setShowFree(true)}
+                    className="text-[12.5px] text-ink-3 underline underline-offset-2"
+                  >
+                    あてはまるものがない（自由に書く）
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor={`free-${step.field}`} className="text-[11px] tracking-wide text-ink-3">
+                      自由に書いてください
+                    </label>
+                    <textarea
+                      id={`free-${step.field}`}
+                      value={freeInputs[step.field] ?? ""}
+                      onChange={(e) => setFreeInputs((f) => ({ ...f, [step.field]: e.target.value }))}
+                      placeholder="例：3人だけど途中で1人合流するかも"
+                      className="min-h-[56px] w-full resize-y rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
+                    />
+                    <button
+                      onClick={() => {
+                        const v = (freeInputs[step.field] ?? "").trim();
+                        if (!v) return;
+                        choose(step.field, v);
+                      }}
+                      disabled={!(freeInputs[step.field] ?? "").trim()}
+                      className="rounded-xl bg-plan py-[11px] text-[13.5px] font-bold text-white disabled:opacity-50"
+                    >
+                      これで次へ
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           ) : (

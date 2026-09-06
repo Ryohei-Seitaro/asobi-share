@@ -83,9 +83,12 @@ export default async function MePage() {
           <span className="mb-[11px] block text-[11px] text-ink-3">有料旅程の売上</span>
           <Row label={`有料旅程の売上（${myTrips.filter((t) => t.priceYen > 0).length}件）`} value={`¥${paidSalesYen.toLocaleString()}`} />
           <Row label="手数料（15%）" value={`−¥${Math.round(paidSalesYen * 0.15).toLocaleString()}`} />
-          <button className="mt-[11px] w-full rounded-[10px] border border-money py-2.5 text-[13px] font-bold text-money">
+          <Link
+            href="/me/payout"
+            className="mt-[11px] block w-full rounded-[10px] border border-money py-2.5 text-center text-[13px] font-bold text-money"
+          >
             受け取る
-          </button>
+          </Link>
         </div>
 
         <div className="mx-4 mt-2.5 rounded-[13px] border border-line bg-surface p-3.5">
@@ -93,9 +96,12 @@ export default async function MePage() {
             🪙 {coinBalance.toLocaleString()}
           </span>
           <span className="mb-[11px] block text-[11px] text-ink-3">保有コイン残高</span>
-          <button className="mt-[11px] w-full rounded-[10px] border border-coin py-2.5 text-[13px] font-bold text-coin">
+          <Link
+            href="/me/charge"
+            className="mt-[11px] block w-full rounded-[10px] border border-coin py-2.5 text-center text-[13px] font-bold text-coin"
+          >
             コインをチャージする
-          </button>
+          </Link>
         </div>
 
         <p className="px-4 pb-1.5 pt-4 text-[11px] tracking-wide text-ink-3">わたしの旅程</p>

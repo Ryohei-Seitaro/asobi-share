@@ -1,4 +1,5 @@
 import { SignInButton } from "@clerk/nextjs";
+import Link from "next/link";
 import { getOrCreateUser } from "@/lib/auth";
 import { createTrip } from "./actions";
 
@@ -49,6 +50,38 @@ export default async function CreatePage() {
         <h1 className="font-display text-[17px] font-semibold">旅程をつくる</h1>
       </div>
       <form action={createTrip} className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+        <Link
+          href="/create/memo"
+          className="flex items-center gap-2.5 rounded-xl border border-plan bg-plan-soft px-4 py-3.5 text-[13.5px] font-bold text-plan"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+            <path
+              d="M4 3h10a1 1 0 011 1v7.5L11.5 15H4a1 1 0 01-1-1V4a1 1 0 011-1z"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinejoin="round"
+            />
+            <path d="M11.5 15V12a1 1 0 011-1H15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+            <path d="M6 6.5h6M6 9h4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+          <span className="flex-1">
+            📌 メモから旅程をつくる
+            <span className="mt-0.5 block text-[11px] font-normal text-plan/80">
+              他アプリで書いた旅程のテキストと写真を貼り付けると自動で整えます
+            </span>
+          </span>
+          <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0" aria-hidden="true">
+            <path d="M4 1.5 L8.5 6 L4 10.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+
+        <div className="flex items-center gap-2 text-[11px] text-ink-3">
+          <span className="h-px flex-1 bg-line-soft" />
+          または、はじめから入力する
+          <span className="h-px flex-1 bg-line-soft" />
+        </div>
+
         <div>
           <label htmlFor="title" className="mb-1.5 block text-[11px] tracking-wide text-ink-3">
             タイトル

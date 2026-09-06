@@ -1,9 +1,9 @@
 import Link from "next/link";
-import Image from "next/image";
 import { and, desc, eq, lte, or } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trips as tripsTable } from "@/db/schema";
 import { ChatSuggest } from "@/components/ChatSuggest";
+import { TripCardPhotos } from "@/components/TripCardPhotos";
 
 const GENRES = [
   "すべて",
@@ -146,19 +146,7 @@ export default async function DiscoverPage({
                 href={`/trips/${trip.id}`}
                 className="overflow-hidden rounded-[14px] border border-line bg-surface text-left text-ink"
               >
-                <div className="grid h-[104px] grid-cols-[2fr_1fr_1fr] gap-0.5">
-                  {photos.map((url, i) => (
-                    <span key={i} className="relative block overflow-hidden bg-surface-2">
-                      <Image
-                        src={url}
-                        alt={trip.title}
-                        fill
-                        sizes="200px"
-                        className="object-cover"
-                      />
-                    </span>
-                  ))}
-                </div>
+                <TripCardPhotos photos={photos} alt={trip.title} />
                 <div className="px-[13px] pb-[13px] pt-[11px]">
                   <p className="mb-[5px] text-[14px] font-bold leading-[1.45]">{trip.title}</p>
                   <div className="flex flex-wrap items-center gap-2 text-[11.5px] text-ink-2">

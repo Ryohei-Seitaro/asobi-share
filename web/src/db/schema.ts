@@ -25,6 +25,7 @@ export const coinTxTypeEnum = pgEnum("coin_tx_type", [
   "charge",
   "payout",
 ]);
+export const payoutStatusEnum = pgEnum("payout_status", ["pending", "paid"]);
 
 // Clerkのユーザーをそのまま参照する（idはClerkのuserId）
 export const users = pgTable("users", {
@@ -72,7 +73,9 @@ export const tripEvents = pgTable("trip_events", {
     .references(() => tripDays.id, { onDelete: "cascade" }),
   orderIndex: integer("order_index").notNull(), // 有料ライン判定に使う並び順
   title: text("title").notNull(),
-  place: text("place").notNull(), // Googleマップ/食べログ検索クエリにそのまま使う
+  place: text("place").notNull(), // Googleマップ/食べログ検索クエリにそのまま使う（mapUrl/tabelogUrl未指定時のフォールバック）
+  mapUrl: text("map_url"), // 投稿者が指定したGoogleマップの位置情報URL（nullなら place から検索リンクを生成）
+  tabelogUrl: text("tabelog_url"), // 投稿者が指定した食べログの該当ページURL（nullなら place から検索リンクを生成）
   category: eventCategoryEnum("category").notNull().default("other"),
   planStart: text("plan_start").notNull(), // "10:05"
   planEnd: text("plan_end").notNull(),
@@ -158,6 +161,30 @@ export const tripPurchases = pgTable(
     uniqueIndex("trip_purchases_trip_user_idx").on(t.tripId, t.userId),
   ]
 );
+
+// 振込先口座情報（ユーザーにつき1件）
+export const payoutAccounts = pgTable("payout_accounts", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  bankName: text("bank_name").notNull(),
+  branchName: text("branch_name").notNull(),
+  accountType: text("account_type").notNull(), // "ordinary" | "checking"
+  accountNumber: text("account_number").notNull(),
+  accountHolder: text("account_holder").notNull(), // カナ氏名
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// 売上受け取り（振込）申請
+export const payoutRequests = pgTable("payout_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  amountYen: integer("amount_yen").notNull(),
+  status: payoutStatusEnum("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 export const usersRelations = relations(users, ({ many }) => ({
   trips: many(trips),

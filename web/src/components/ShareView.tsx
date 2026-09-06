@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -20,11 +20,9 @@ export function ShareView({
   eventCount: number;
 }) {
   const [toast, setToast] = useState<string | null>(null);
-  const [shareUrl, setShareUrl] = useState("");
-
-  useEffect(() => {
-    setShareUrl(`${window.location.origin}/trips/${tripId}`);
-  }, [tripId]);
+  const [shareUrl] = useState(() =>
+    typeof window !== "undefined" ? `${window.location.origin}/trips/${tripId}` : ""
+  );
 
   function show(msg: string) {
     setToast(msg);
@@ -95,9 +93,14 @@ export function ShareView({
             rel="noopener"
             className="flex flex-col items-center gap-1.5 rounded-[11px] border border-line bg-surface py-3.5 text-[12px] font-medium text-ink"
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-              <path d="M2 2 L16 16M16 2 L2 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
+            <span className="grid h-[26px] w-[26px] place-items-center rounded-full bg-black">
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#fff"
+                  d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+                />
+              </svg>
+            </span>
             X
           </a>
           <a
@@ -106,25 +109,34 @@ export function ShareView({
             rel="noopener"
             className="flex flex-col items-center gap-1.5 rounded-[11px] border border-line bg-surface py-3.5 text-[12px] font-medium text-ink"
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-              <path
-                d="M9 2C4.9 2 1.6 4.7 1.6 8c0 2.1 1.4 4 3.5 5.1-.1.6-.5 1.9-.6 2.2 0 0 0 .2.1.2h.2c.3-.1 2.6-1.7 3.2-2.1.3 0 .7.1 1 .1 4.1 0 7.4-2.7 7.4-6S13.1 2 9 2z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.4"
-              />
-            </svg>
+            <span className="grid h-[26px] w-[26px] place-items-center rounded-full bg-[#06C755]">
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#fff"
+                  d="M12 2.5C6.201 2.5 1.5 6.315 1.5 11.01c0 4.209 3.73 7.734 8.77 8.4.342.074.807.226.925.518.106.266.069.682.034.951l-.15.9c-.043.267-.21 1.043.913.569 1.122-.474 6.05-3.562 8.253-6.098C21.72 14.238 22.5 12.706 22.5 11.01c0-4.695-4.701-8.51-10.5-8.51zm-5.5 10.87h-1.53a.36.36 0 01-.36-.36V8.62a.36.36 0 01.72 0v3.99h1.17a.36.36 0 010 .72zm2.09 0a.36.36 0 01-.36-.36V8.62a.36.36 0 01.72 0v4.39a.36.36 0 01-.36.36zm4.94-.36a.36.36 0 01-.36.36h-.02a.36.36 0 01-.29-.146L10.63 9.98v2.87a.36.36 0 01-.72 0V8.62a.36.36 0 01.36-.36h.03a.36.36 0 01.29.147l2.25 3.28V8.62a.36.36 0 01.72 0zm3.6-3.03h-1.62v1.13h1.53a.36.36 0 010 .72h-1.53v1.13h1.62a.36.36 0 010 .72h-1.98a.36.36 0 01-.36-.36V8.62a.36.36 0 01.36-.36h1.98a.36.36 0 010 .72z"
+                />
+              </svg>
+            </span>
             LINE
           </a>
           <button
             onClick={() => show("画像を保存してストーリーに貼り付けてください")}
             className="flex flex-col items-center gap-1.5 rounded-[11px] border border-line bg-surface py-3.5 text-[12px] font-medium text-ink"
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-              <rect x="2" y="2" width="14" height="14" rx="4.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-              <circle cx="9" cy="9" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.6" />
-              <circle cx="13.4" cy="4.6" r="1" fill="currentColor" />
-            </svg>
+            <span
+              className="grid h-[26px] w-[26px] place-items-center rounded-[8px]"
+              style={{
+                background:
+                  "radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%)",
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#fff"
+                  d="M12 2c-2.716 0-3.056.012-4.123.06-1.064.049-1.791.218-2.427.465a4.9 4.9 0 00-1.772 1.153A4.9 4.9 0 002.525 5.45c-.247.636-.416 1.363-.465 2.427C2.012 8.944 2 9.284 2 12s.012 3.056.06 4.123c.049 1.064.218 1.791.465 2.427a4.9 4.9 0 001.153 1.772 4.9 4.9 0 001.772 1.153c.636.247 1.363.416 2.427.465C8.944 21.988 9.284 22 12 22s3.056-.012 4.123-.06c1.064-.049 1.791-.218 2.427-.465a4.9 4.9 0 001.772-1.153 4.9 4.9 0 001.153-1.772c.247-.636.416-1.363.465-2.427.048-1.067.06-1.407.06-4.123s-.012-3.056-.06-4.123c-.049-1.064-.218-1.791-.465-2.427a4.9 4.9 0 00-1.153-1.772A4.9 4.9 0 0018.55 2.525c-.636-.247-1.363-.416-2.427-.465C15.056 2.012 14.716 2 12 2zm0 1.802c2.67 0 2.987.01 4.042.059.976.045 1.505.207 1.858.344.467.182.8.399 1.15.748.35.35.566.683.748 1.15.137.353.3.882.344 1.858.048 1.055.058 1.372.058 4.042s-.01 2.987-.058 4.042c-.045.976-.207 1.505-.344 1.858a3.1 3.1 0 01-.748 1.15 3.1 3.1 0 01-1.15.748c-.353.137-.882.3-1.858.344-1.054.048-1.371.058-4.042.058s-2.988-.01-4.042-.058c-.976-.045-1.505-.207-1.858-.344a3.1 3.1 0 01-1.15-.748 3.1 3.1 0 01-.748-1.15c-.137-.353-.3-.882-.344-1.858-.048-1.055-.058-1.372-.058-4.042s.01-2.987.058-4.042c.045-.976.207-1.505.344-1.858.182-.467.399-.8.748-1.15a3.1 3.1 0 011.15-.748c.353-.137.882-.3 1.858-.344 1.055-.048 1.372-.059 4.042-.059zm0 3.063a5.135 5.135 0 100 10.27 5.135 5.135 0 000-10.27zm0 8.468a3.333 3.333 0 110-6.666 3.333 3.333 0 010 6.666zm6.538-8.671a1.2 1.2 0 11-2.4 0 1.2 1.2 0 012.4 0z"
+                />
+              </svg>
+            </span>
             ストーリー
           </button>
         </div>

@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // メモ取り込み画面で複数枚の写真をdata URLとしてServer Actionへ送るため、
+  // デフォルト1MBのボディサイズ上限を引き上げる。
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
+  },
   images: {
     remotePatterns: [
       {

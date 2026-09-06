@@ -58,7 +58,7 @@ const FEED = [
     likes: 540,
     trend: 88,
     priceYen: 0,
-    shots: ["torii", "nishiki", "kiyomizu"],
+    shots: ["torii", "nishiki", "kiyomizu", "torii2", "ponto", "togetsu"],
   },
   {
     title: "台北3泊4日 卒業旅行、朝から夜市まで詰めた",
@@ -69,7 +69,7 @@ const FEED = [
     trend: 95,
     priceYen: 480,
     priceCoin: 240,
-    shots: ["beach", "hanabi", "cafe"],
+    shots: ["beach", "hanabi", "cafe", "sea", "bbq"],
   },
   {
     title: "鎌倉ゆるめのデート、歩く距離ぜんぶ計算した",
@@ -79,7 +79,7 @@ const FEED = [
     likes: 301,
     trend: 40,
     priceYen: 0,
-    shots: ["cafe", "togetsu", "yudofu"],
+    shots: ["cafe", "togetsu", "yudofu", "ponto", "nishiki"],
   },
   {
     title: "テニスサークル夏合宿 3日ぶんのタイムテーブル",
@@ -89,7 +89,7 @@ const FEED = [
     likes: 150,
     trend: 22,
     priceYen: 0,
-    shots: ["camp", "hanabi", "beach"],
+    shots: ["camp", "hanabi", "beach", "river", "sea"],
   },
   {
     title: "親を連れて行く箱根、歩かせすぎない一日",
@@ -100,7 +100,7 @@ const FEED = [
     trend: 35,
     priceYen: 280,
     priceCoin: 140,
-    shots: ["family", "yudofu", "togetsu"],
+    shots: ["family", "yudofu", "togetsu", "lake", "cafe"],
   },
   {
     title: "高尾山から陣馬山まで縦走した休日",
@@ -110,7 +110,7 @@ const FEED = [
     likes: 98,
     trend: 60,
     priceYen: 0,
-    shots: ["mountain", "river", "camp"],
+    shots: ["mountain", "river", "camp", "lake", "bbq"],
   },
   {
     title: "はじめてのゴルフ、友達4人でラウンド",
@@ -120,7 +120,7 @@ const FEED = [
     likes: 64,
     trend: 18,
     priceYen: 0,
-    shots: ["golf", "cafe", "family"],
+    shots: ["golf", "cafe", "family", "lake"],
   },
   {
     title: "早朝から始める渓流釣りの一日",
@@ -130,7 +130,7 @@ const FEED = [
     likes: 112,
     trend: 70,
     priceYen: 0,
-    shots: ["fishing", "river", "camp"],
+    shots: ["fishing", "river", "camp", "lake", "mountain"],
   },
   {
     title: "焚き火だけしに行くソロキャンプ",
@@ -141,7 +141,7 @@ const FEED = [
     trend: 82,
     priceYen: 380,
     priceCoin: 190,
-    shots: ["camp", "hanabi", "mountain"],
+    shots: ["camp", "hanabi", "mountain", "river", "lake"],
   },
   {
     title: "サーフィン初心者が湘南で一日過ごすルート",
@@ -151,7 +151,7 @@ const FEED = [
     likes: 290,
     trend: 77,
     priceYen: 0,
-    shots: ["sea", "beach", "cafe"],
+    shots: ["sea", "beach", "cafe", "bbq"],
   },
   {
     title: "川下りラフティングとBBQを一日で両方やる",
@@ -161,7 +161,7 @@ const FEED = [
     likes: 130,
     trend: 55,
     priceYen: 0,
-    shots: ["river", "bbq", "camp"],
+    shots: ["river", "bbq", "camp", "lake", "family"],
   },
   {
     title: "湖畔でSUPしてから昼寝するだけの日",
@@ -171,7 +171,7 @@ const FEED = [
     likes: 95,
     trend: 28,
     priceYen: 0,
-    shots: ["lake", "family", "cafe"],
+    shots: ["lake", "family", "cafe", "river"],
   },
   {
     title: "河原でBBQ、買い出しから片付けまでの動線",
@@ -181,7 +181,7 @@ const FEED = [
     likes: 410,
     trend: 91,
     priceYen: 0,
-    shots: ["bbq", "river", "family"],
+    shots: ["bbq", "river", "family", "camp", "lake"],
   },
   {
     title: "苗場日帰りスノボ、始発で行って終電で帰る",
@@ -192,7 +192,7 @@ const FEED = [
     trend: 66,
     priceYen: 320,
     priceCoin: 160,
-    shots: ["snowboard", "ski", "cafe"],
+    shots: ["snowboard", "ski", "cafe", "mountain"],
   },
   {
     title: "初心者3人のゲレンデデビュー",
@@ -202,7 +202,7 @@ const FEED = [
     likes: 70,
     trend: 15,
     priceYen: 0,
-    shots: ["ski", "snowboard", "family"],
+    shots: ["ski", "snowboard", "family", "mountain", "cafe"],
   },
   {
     title: "話題のピックルボールを都内コートで体験",
@@ -212,7 +212,7 @@ const FEED = [
     likes: 410,
     trend: 97,
     priceYen: 0,
-    shots: ["pickleball", "cafe", "golf"],
+    shots: ["pickleball", "cafe", "golf", "family"],
   },
 ];
 
@@ -372,7 +372,7 @@ async function main() {
 
   await db
     .insert(schema.users)
-    .values({ id: DEMO_USER_ID, name: "あいり" })
+    .values({ id: DEMO_USER_ID, name: "あそびくん" })
     .onConflictDoNothing();
 
   await db

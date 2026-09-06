@@ -248,7 +248,7 @@ export function TripDetail({
                   {ev.place}
                 </div>
                 {ev.photos.length > 0 && (
-                  <div className="mt-[7px] flex gap-[5px]">
+                  <div className="scrollbar-none mt-[7px] flex gap-[5px] overflow-x-auto" onClick={(e) => e.stopPropagation()}>
                     {ev.photos.map((p) => (
                       <span key={p.id} className="relative block h-[45px] w-[60px] shrink-0 overflow-hidden rounded-md bg-surface-2">
                         <Image src={p.url} alt={ev.title} fill sizes="60px" className="object-cover" />
@@ -267,16 +267,16 @@ export function TripDetail({
                     )}
                     <div className="mt-2 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
                       <a
-                        href={mapUrl(ev.place)}
+                        href={ev.mapUrl || mapUrl(ev.place)}
                         target="_blank"
                         rel="noopener"
                         className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface-3 px-[9px] py-[5px] text-[11px] font-medium text-ink-2"
                       >
                         📍 Googleマップで見る
                       </a>
-                      {ev.category === "food" && (
+                      {(ev.tabelogUrl || ev.category === "food") && (
                         <a
-                          href={tabelogUrl(ev.place)}
+                          href={ev.tabelogUrl || tabelogUrl(ev.place)}
                           target="_blank"
                           rel="noopener"
                           className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface-3 px-[9px] py-[5px] text-[11px] font-medium text-ink-2"
