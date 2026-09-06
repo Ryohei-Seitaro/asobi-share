@@ -19,6 +19,7 @@
 
 ## 完了
 
+- [x] [backend][qa] 「見つける」→旅程詳細（`/trips/[id]`）を開くとNeon DBエラー（`column trips_days_events.map_url does not exist`）。個人用Neon（asobi-share-dev）へのdrizzleスキーマ反映漏れが原因。`npx dotenv -e .env.local -- drizzle-kit push` で `trip_events.map_url` / `tabelog_url` を追加して解消 (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 - [x] [frontend] メモ取り込み画面の写真枚数上限（5枚）を撤廃する (起票: 久野, 2026-09-06 / 完了: 久野, 2026-09-06)
 - [x] [frontend][backend] メモ取り込み画面で写真が1MBまでしか載せられない制限を緩和する (起票: 久野, 2026-09-06 / 完了: 久野, 2026-09-06) ※Server Actionsのボディ上限を50MBに拡大
 - [x] [backend] メモ取り込みのテキスト解析で複数日程が1日にまとまってしまう不具合を直す (起票: 久野, 2026-09-06 / 完了: 久野, 2026-09-06)
