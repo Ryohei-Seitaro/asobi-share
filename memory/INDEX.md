@@ -9,5 +9,6 @@
 - [2026-09-06 メモ取り込みの不具合修正、Googleカレンダー直接登録（OAuth）、有料ラインのドラッグ移動](20260906_memo-fixes-and-gcal-oauth-and-paid-line-drag.md) — 写真枚数/サイズ制限撤廃、複数日パース修正、GCal OAuth連携、有料ラインドラッグ化
 - [2026-09-06 メモ取り込みのタイムラインプレビューと予定ごとのマップ/食べログURL入力](20260906_memo-preview-and-place-links.md) — メモ画面に投稿前タイムラインプレビュー追加、予定にGoogleマップ/食べログURLを直接入力できるように
 - [2026-09-06 つくる画面のGoogleカレンダー化・受け取り/チャージ画面・メモ取り込み投稿の実装](20260906_calendar-ux-payout-memo-import.md) — ドラッグ予定作成・1分刻み・ics連携・受け取り/チャージ画面・メモ取り込み投稿・写真カルーセル・ブランド調整
+- [2026-09-06 web/実装のローカル動作確認と個人用Neonプロジェクトの採用](20260906_web-local-verification.md) — Clerk keys発行・個人Neonプロジェクトでスキーマ反映・シードして動作確認
 - [2026-09-05 CEOフィードバック9項目の実装と共同タスクボードの新設](20260905_feedback-and-tasks-mvp-updates.md) — CEOフィードバック9項目のモック実装、tasks/board.md新設
 - [2026-09-05 memory/ディレクトリの新設](20260905_memory-setup.md) — hqの方針に従いこのリポジトリにmemory/を新設

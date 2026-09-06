@@ -4,9 +4,8 @@ import { getOrCreateUser } from "@/lib/auth";
 import { createTrip } from "./actions";
 
 const GENRES = [
+  "観光",
   "デート",
-  "国内旅行",
-  "海外旅行",
   "合宿",
   "サークル遊び",
   "家族旅行",
@@ -130,6 +129,42 @@ export default async function CreatePage() {
             <option value="2泊3日">2泊3日</option>
             <option value="3泊4日">3泊4日</option>
           </select>
+        </div>
+        <div>
+          <span className="mb-1.5 block text-[11px] tracking-wide text-ink-3">国内・海外</span>
+          <div className="flex gap-[9px]">
+            <label className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border border-line bg-surface-3 py-[9px] text-[13.5px] text-ink has-[:checked]:border-plan has-[:checked]:bg-plan-soft has-[:checked]:font-bold has-[:checked]:text-plan">
+              <input type="radio" name="scope" value="domestic" defaultChecked className="sr-only" />
+              国内
+            </label>
+            <label className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border border-line bg-surface-3 py-[9px] text-[13.5px] text-ink has-[:checked]:border-plan has-[:checked]:bg-plan-soft has-[:checked]:font-bold has-[:checked]:text-plan">
+              <input type="radio" name="scope" value="international" className="sr-only" />
+              海外
+            </label>
+          </div>
+        </div>
+        <div>
+          <span className="mb-1.5 block text-[11px] tracking-wide text-ink-3">おすすめの人数</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              name="partySizeMin"
+              min={1}
+              defaultValue={1}
+              aria-label="最少人数"
+              className="w-full rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
+            />
+            <span className="shrink-0 text-[12.5px] text-ink-3">人 〜</span>
+            <input
+              type="number"
+              name="partySizeMax"
+              min={1}
+              placeholder="上限なし"
+              aria-label="最大人数"
+              className="w-full rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
+            />
+            <span className="shrink-0 text-[12.5px] text-ink-3">人</span>
+          </div>
         </div>
         <button type="submit" className="mt-auto rounded-xl bg-plan py-3.5 text-[14px] font-bold text-white">
           つぎへ（予定を置く）

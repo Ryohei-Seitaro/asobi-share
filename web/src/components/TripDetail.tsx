@@ -451,6 +451,13 @@ function TripHeader({
         <div className="mb-[11px] flex flex-wrap gap-1.5">
           <span className="rounded-full bg-plan-soft px-2.5 py-1 text-[11.5px] font-medium text-plan">#{trip.genre}</span>
           <span className="rounded-full bg-plan-soft px-2.5 py-1 text-[11.5px] font-medium text-plan">#{trip.daysLabel}</span>
+          <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11.5px] font-medium text-ink-2">
+            #{trip.international ? "海外" : "国内"}
+          </span>
+          <span className="rounded-full bg-surface-2 px-2.5 py-1 font-mono-num text-[11.5px] font-medium tabular-nums text-ink-2">
+            {trip.partySizeMin}
+            {trip.partySizeMax ? `〜${trip.partySizeMax}` : "〜"}人
+          </span>
         </div>
         <div className="flex items-center gap-2.5 text-[12.5px] text-ink-2">
           <span className="h-[26px] w-[26px] shrink-0 rounded-full bg-gradient-to-br from-[#8FB4E8] to-[#C79BD8]" />

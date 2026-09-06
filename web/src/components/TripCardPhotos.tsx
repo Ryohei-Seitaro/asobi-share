@@ -9,13 +9,25 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-export function TripCardPhotos({ photos, alt }: { photos: string[]; alt: string }) {
+export function TripCardPhotos({
+  photos,
+  alt,
+  isSaved,
+}: {
+  photos: string[];
+  alt: string;
+  isSaved?: boolean;
+}) {
   const pages = chunk(photos, 3);
   const [page, setPage] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   if (pages.length === 0) {
-    return <div className="h-[104px] bg-surface-2" />;
+    return (
+      <div className="relative h-[104px] bg-surface-2">
+        {isSaved && <SavedBadge />}
+      </div>
+    );
   }
 
   const safePage = Math.min(page, pages.length - 1);
@@ -36,6 +48,7 @@ export function TripCardPhotos({ photos, alt }: { photos: string[]; alt: string 
         setTouchStartX(null);
       }}
     >
+      {isSaved && <SavedBadge />}
       <div
         className={`grid h-full gap-0.5 ${
           current.length >= 3 ? "grid-cols-[2fr_1fr_1fr]" : current.length === 2 ? "grid-cols-2" : "grid-cols-1"
@@ -89,5 +102,16 @@ export function TripCardPhotos({ photos, alt }: { photos: string[]; alt: string 
         </>
       )}
     </div>
+  );
+}
+
+function SavedBadge() {
+  return (
+    <span className="absolute left-2 top-2 z-20 flex items-center gap-1 rounded-full bg-plan/90 px-2 py-[3px] text-[10.5px] font-bold text-white shadow-sm">
+      <svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true">
+        <path d="M2.5 6 L5 8.5 L9.5 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      保存済み
+    </span>
   );
 }

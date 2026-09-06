@@ -41,8 +41,12 @@ export const trips = pgTable("trips", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  genre: text("genre").notNull(), // タグ表示・chipsフィルタに使う値（例: "国内旅行", "山登り"）
+  genre: text("genre").notNull(), // タグ表示・chipsフィルタに使う値（例: "山登り", "デート"）
   daysLabel: text("days_label").notNull(), // 表示用（例: "1泊2日", "日帰り"）
+  nights: integer("nights").notNull().default(0), // 構造化フィルタ用の宿泊数（0=日帰り）。daysLabelから導出
+  international: boolean("international").notNull().default(false), // false=国内, true=海外
+  partySizeMin: integer("party_size_min").notNull().default(1), // この人数からおすすめ
+  partySizeMax: integer("party_size_max"), // nullable: 上限なし
   coverPhotos: jsonb("cover_photos").$type<string[]>().notNull().default([]), // カード一覧用の代表写真（3枚想定）
   visibility: visibilityEnum("visibility").notNull().default("public"),
   priceYen: integer("price_yen").notNull().default(0), // 0 = 無料
