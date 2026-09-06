@@ -54,9 +54,36 @@ export default async function TripDetailPage({
     coinBalance = balanceRow?.balance ?? 0;
   }
 
+  // 未購入なら有料ライン以降のイベント本文をサーバー側で伏せる（クライアントに渡さない）。
+  // 時間帯だけ残して「有料エリアの予定」のプレースホルダーにする。
+  const paidFrom = trip.paidFromEventOrder;
+  const safeTrip =
+    !purchased && paidFrom != null
+      ? {
+          ...trip,
+          days: trip.days.map((d) => ({
+            ...d,
+            events: d.events.map((ev) =>
+              ev.orderIndex >= paidFrom
+                ? {
+                    ...ev,
+                    title: "有料エリアの予定",
+                    place: "",
+                    detail: null,
+                    caution: null,
+                    mapUrl: null,
+                    tabelogUrl: null,
+                    photos: [],
+                  }
+                : ev
+            ),
+          })),
+        }
+      : trip;
+
   return (
     <TripDetail
-      trip={trip}
+      trip={safeTrip}
       initialSaved={initialSaved}
       initialLiked={initialLiked}
       isLoggedIn={!!user}
