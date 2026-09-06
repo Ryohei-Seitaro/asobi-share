@@ -51,3 +51,9 @@ CEOからのフィードバックのうち、バックエンドエンジニア�
 - 修正前の問題：写真が5枚・1MBまでしか載せられなかった（Server Actionsのデフォルトボディ上限が原因）。メモテキストの複数日程が1日にまとまってしまうパース不具合があった。Googleカレンダー連携が.icsのダウンロード/インポート止まりで手間だった。
 - CEOの指示：写真の枚数・サイズ制限を撤廃・緩和する。複数日パースを直す。ボタン一つでGoogleカレンダーに複数の予定が自動生成されるようにしたい。
 - 傾向メモ：「一応動く」レベルでは満足せず、実際に使ってみて手間だと感じた導線（確認ステップが多い、手動操作が要る）はワンクリックまで踏み込んで改善を求める。技術的難易度（OAuth連携、外部API審査など）を先に説明すると、それを踏まえた上で本格対応を選ぶ傾向がある。
+
+## 2026-09-06
+- タスク概要：「見つける」から具体的な旅程を開くとNeon DBエラーが出る、との不具合報告。
+- 修正前の問題：`src/db/schema.ts` に追加済みの `trip_events.map_url` / `tabelog_url`（Googleマップ/食べログURL入力機能で追加）が、CEO（Seitaro）の個人用Neon（asobi-share-dev）に反映されておらず、旅程詳細クエリが `column ... does not exist`（42703）で落ちていた。`.env.local` はgitignoreで共有されないため、各自がpull後に自分のNeonへ `db:push` する必要がある（既知の運用、`memory/20260906_web-local-verification.md`）。
+- 対応：`npx dotenv -e .env.local -- drizzle-kit push` を実行。`db:push` スクリプト（`drizzle-kit push` のみ）は `.env.local` を自動ロードしないため、`DATABASE_URL` 未設定で `Either connection "url" ...` と失敗する。`dotenv-cli` は devDependency にあるので `dotenv -e .env.local --` を噛ませる。差分は nullable な2カラム追加のみで対話プロンプトなしで適用された。
+- 傾向メモ：スキーマ変更を含む機能をpullしたら、動作確認の前に必ず自分のNeonへスキーマ反映する。`package.json` の `db:push` は env ロードが噛んでおらず単体で動かない点に注意（スクリプトを `dotenv -e .env.local -- drizzle-kit push` に直すか、README/CLAUDE.mdに手順を明記するのが望ましい）。
