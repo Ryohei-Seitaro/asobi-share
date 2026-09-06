@@ -58,23 +58,17 @@ export default function SearchPage() {
   return (
     <>
       <div className="flex items-center gap-2.5 border-b border-line-soft px-4 py-3.5">
+        <h1 className="flex-1 font-display text-[17px] font-semibold">明日、なにする？</h1>
         <Link
           href="/"
-          aria-label="一覧へ戻る"
-          className="grid h-8 w-8 place-items-center rounded-[9px] border border-line text-ink-2"
+          aria-label="検索をとじて見つけるへ"
+          className="flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-[12px] font-medium text-ink-2"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14">
-            <path
-              d="M9 1 L3 7 L9 13"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
           </svg>
+          とじる
         </Link>
-        <h1 className="font-display text-[17px] font-semibold">明日、なにする？</h1>
       </div>
 
       <div className="flex flex-1 flex-col overflow-y-auto px-5 pb-5 pt-[22px]">
@@ -91,9 +85,9 @@ export default function SearchPage() {
           {stepIdx > 0 && (
             <button
               onClick={() => goToStep(stepIdx - 1)}
-              className="mb-4 flex-none self-start text-[12.5px] text-ink-3"
+              className="mb-4 flex-none self-start rounded-full border border-line px-3 py-1 text-[12px] font-medium text-ink-2"
             >
-              ← 戻る
+              ← 前の質問へ
             </button>
           )}
 

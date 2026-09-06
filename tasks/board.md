@@ -19,7 +19,6 @@
 
 #### 2026-09-06 CEOフィードバック（7件バッチ・順に対応）
 
-- [ ] [frontend][ui-ux] ②検索：「戻る」ボタンと左上「ホームに戻る」ボタンがわかりにくいので整理する (起票: Seitaro, 2026-09-06)
 - [ ] [frontend][ui-ux][planning] ③予定作成：ジャンルを「カテゴリ＞サブジャンル」の2階層にする（例：アウトドア→登山） (起票: Seitaro, 2026-09-06)
 - [ ] [frontend][backend][ui-ux][planning] ④予定作成：カレンダー月表示→日付選択→時間選択で日程入力。旅程を日付ベースで保存し日数を自動算出。何月に行ったか表示＋季節フィルタ (起票: Seitaro, 2026-09-06)
 - [ ] [frontend][backend][ui-ux] ⑤見つける：フィルタをジャンル以外（人数・日数・国内/海外など）全条件対応に。前提として「つくる」で人数・日数・国内/海外を入力必須化 (起票: Seitaro, 2026-09-06)
@@ -28,6 +27,7 @@
 
 ## 完了
 
+- [x] [frontend][ui-ux] ②検索：ヘッダーの戻る導線を「とじる」（×アイコン＋テキスト、右寄せ）に変更し、ウィザード内の戻るを「← 前の質問へ」に改名。同じ「戻る」が2つ並んで見える問題を解消 (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 - [x] [frontend][backend][ui-ux] ①見つける：保存した旅程を日程指定してカレンダー（Google / .ics=TimeTree等）に飛ばすボタンを追加。導線「保存→カレンダーに追加しますか？→出発日選択→反映」。`AddToCalendar`モーダル、`lib/tripCalendar.ts`、`/api/trips/[id]/ics?start=`、`addTripToGoogleCalendar` action。TimeTreeは.ics共有取り込みで対応（直接API連携は将来） (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 
 - [x] [backend][qa] 「見つける」→旅程詳細（`/trips/[id]`）を開くとNeon DBエラー（`column trips_days_events.map_url does not exist`）。個人用Neon（asobi-share-dev）へのdrizzleスキーマ反映漏れが原因。`npx dotenv -e .env.local -- drizzle-kit push` で `trip_events.map_url` / `tabelog_url` を追加して解消 (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
