@@ -60,24 +60,16 @@ export function AddToCalendar({
           />
         </label>
 
-        <div className="flex flex-col gap-2">
-          <a
-            href={`/api/trips/${tripId}/ics?start=${date}`}
-            className="rounded-[11px] bg-plan px-5 py-3 text-center text-[14px] font-bold text-white"
-          >
-            .icsファイルを保存（Apple / Outlook / TimeTree）
-          </a>
-          <p className="px-1 text-[11px] leading-[1.6] text-ink-3">
-            保存した .ics を開くとカレンダーに取り込めます。TimeTree はアプリでファイルを共有 →「カレンダーに追加」。
-          </p>
-          <button
-            onClick={handleGoogle}
-            disabled={isPending || !date}
-            className="mt-1 rounded-[11px] border border-line bg-surface-3 px-5 py-3 text-[14px] font-bold text-ink-2 disabled:opacity-50"
-          >
-            {isPending ? "登録中…" : "Googleカレンダーに直接登録（準備中）"}
-          </button>
-        </div>
+        <button
+          onClick={handleGoogle}
+          disabled={isPending || !date}
+          className="w-full rounded-[11px] bg-plan px-5 py-3 text-[14px] font-bold text-white disabled:opacity-50"
+        >
+          {isPending ? "登録中…" : "Googleカレンダーに登録"}
+        </button>
+        <p className="mt-2 px-1 text-[11px] leading-[1.6] text-ink-3">
+          Googleカレンダーと連携して、選んだ日から予定をまとめて登録します。
+        </p>
 
         {result?.kind === "google-ok" && (
           <p className="mt-3 rounded-[9px] bg-plan-soft px-3 py-2 text-[12px] leading-[1.6] text-plan">

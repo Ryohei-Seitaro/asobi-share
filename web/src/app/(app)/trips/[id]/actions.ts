@@ -78,14 +78,13 @@ export async function addTripToGoogleCalendar(
     accessToken = tokenList.data[0]?.token;
   } catch {
     // Clerk側のGoogle連携が独自クレデンシャル化されていない / calendar.events スコープ未設定だと
-    // oauth_token_retrieval_error で失敗する。落とさずに .ics 案内へ誘導する。
+    // oauth_token_retrieval_error で失敗する。落とさずにメッセージだけ返す。
     accessToken = undefined;
   }
   if (!accessToken) {
     return {
       ok: false,
-      error:
-        "Googleカレンダーへの直接登録はまだ準備中です。下の「.icsファイルを保存」からカレンダーに取り込んでください。",
+      error: "Googleカレンダーへの登録はまだ準備中です（連携設定の対応待ち）。もうしばらくお待ちください。",
     };
   }
 
@@ -114,8 +113,7 @@ export async function addTripToGoogleCalendar(
   if (created === 0 && failed > 0) {
     return {
       ok: false,
-      error:
-        "Googleカレンダーへの登録に失敗しました。「.icsファイルを保存」からの取り込みをお試しください。",
+      error: "Googleカレンダーへの登録に失敗しました。時間をおいて再度お試しください。",
     };
   }
   return { ok: true, created, failed };
