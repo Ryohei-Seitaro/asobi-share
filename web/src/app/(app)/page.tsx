@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SignInButton } from "@clerk/nextjs";
-import { and, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trips as tripsTable, tripSaves } from "@/db/schema";
 import { getOrCreateUser } from "@/lib/auth";
@@ -39,6 +39,7 @@ const SORT_COLUMN = {
 } as const;
 
 type Filters = {
+  q: string; // 行き先・キーワード
   gcat: string; // ジャンルのカテゴリ（"" = すべて）
   genre: string; // ジャンルのサブジャンル（"すべて" = カテゴリ内すべて）
   tab: TabKey;
@@ -57,6 +58,7 @@ function hrefFor(base: Filters, overrides: Partial<Filters>): string {
     f.gcat = categoryOf(overrides.genre) ?? f.gcat;
   }
   const qs = new URLSearchParams();
+  if (f.q) qs.set("q", f.q);
   if (f.gcat) qs.set("gcat", f.gcat);
   if (f.genre !== "すべて") qs.set("genre", f.genre);
   if (f.tab !== "saves") qs.set("sort", f.tab);
@@ -106,6 +108,7 @@ export default async function DiscoverPage({
   searchParams,
 }: {
   searchParams: Promise<{
+    q?: string;
     gcat?: string;
     genre?: string;
     sort?: string;
@@ -119,6 +122,7 @@ export default async function DiscoverPage({
   const params = await searchParams;
   const tab: TabKey = TABS.find((t) => t.key === params.sort)?.key ?? "saves";
   const isPersonalTab = tab === "mine" || tab === "saved";
+  const q = !isPersonalTab ? (params.q ?? "").trim().slice(0, 60) : "";
   const genre =
     !isPersonalTab && params.genre && isSubgenre(params.genre) ? params.genre : "すべて";
   const gcat =
@@ -143,7 +147,7 @@ export default async function DiscoverPage({
       ? (params.season as SeasonKey)
       : "all";
 
-  const filters: Filters = { gcat, genre, tab, budget, intl, nights, party, season };
+  const filters: Filters = { q, gcat, genre, tab, budget, intl, nights, party, season };
 
   const db = getDb();
   const user = await getOrCreateUser();
@@ -170,6 +174,7 @@ export default async function DiscoverPage({
     }
   } else {
     const conditions = [
+      q ? or(ilike(tripsTable.title, `%${q}%`), ilike(tripsTable.genre, `%${q}%`)) : undefined,
       genre !== "すべて"
         ? eq(tripsTable.genre, genre)
         : gcat
@@ -211,6 +216,7 @@ export default async function DiscoverPage({
   );
 
   const activeFilterCount = [
+    !!q,
     genre !== "すべて" || !!gcat,
     !!budget,
     intl !== "all",
@@ -219,33 +225,56 @@ export default async function DiscoverPage({
     season !== "all",
   ].filter(Boolean).length;
 
+  // 隠しフィールドで現在のフィルタを維持しつつ q だけ更新する GET フォーム用
+  const keepParams: [string, string][] = [];
+  if (gcat) keepParams.push(["gcat", gcat]);
+  if (genre !== "すべて") keepParams.push(["genre", genre]);
+  if (tab !== "saves") keepParams.push(["sort", tab]);
+  if (budget) keepParams.push(["budget", String(budget)]);
+  if (intl !== "all") keepParams.push(["intl", intl]);
+  if (nights !== "all") keepParams.push(["nights", nights]);
+  if (party !== "all") keepParams.push(["party", party]);
+  if (season !== "all") keepParams.push(["season", season]);
+
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2.5 border-b border-line-soft px-4 py-3.5">
         <h1 className="flex-1 font-display text-[17px] font-semibold">見つける</h1>
-        <Link
-          href="/search"
-          aria-label="条件から探す"
-          className="grid h-8 w-8 place-items-center rounded-[9px] border border-line text-ink-2"
-        >
-          <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
-            <circle cx="6.3" cy="6.3" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M9.6 9.6 L13 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-        </Link>
       </div>
 
       <div className="flex-1 overflow-y-auto bg-surface-3">
-        <div className="mx-4 mt-3.5 flex items-center gap-2 rounded-[11px] border border-line bg-surface px-3 py-2.5 text-[13px] text-ink-3">
-          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-            <circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
-            <path d="M9.4 9.4 L13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-          </svg>
-          行き先・キーワードで探す
-        </div>
+        {!isPersonalTab && (
+          <form
+            action="/"
+            method="get"
+            className="mx-4 mt-3.5 flex items-center gap-2 rounded-[11px] border border-line bg-surface px-3 py-2 text-[13px]"
+          >
+            {keepParams.map(([k, v]) => (
+              <input key={k} type="hidden" name={k} value={v} />
+            ))}
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" className="shrink-0 text-ink-3">
+              <circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+              <path d="M9.4 9.4 L13 13" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            </svg>
+            <input
+              type="search"
+              name="q"
+              defaultValue={q}
+              placeholder="行き先・キーワードで探す"
+              className="min-w-0 flex-1 bg-transparent py-1 text-[13px] text-ink outline-none placeholder:text-ink-3"
+            />
+            {q && (
+              <Link href={hrefFor(filters, { q: "" })} aria-label="キーワードを消す" className="shrink-0 text-ink-3">
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </Link>
+            )}
+          </form>
+        )}
 
         {!isPersonalTab && (
-          <details className="group mx-4 mt-2.5 rounded-[13px] border border-line bg-surface">
+          <details open={activeFilterCount > 0} className="group mx-4 mt-2.5 rounded-[13px] border border-line bg-surface">
             <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-3 text-[13px] font-medium text-ink [&::-webkit-details-marker]:hidden">
               <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
                 <path
@@ -263,7 +292,7 @@ export default async function DiscoverPage({
               )}
               {activeFilterCount > 0 && (
                 <Link
-                  href={hrefFor(filters, { gcat: "", genre: "すべて", budget: 0, intl: "all", nights: "all", party: "all", season: "all" })}
+                  href={hrefFor(filters, { q: "", gcat: "", genre: "すべて", budget: 0, intl: "all", nights: "all", party: "all", season: "all" })}
                   className="text-[12px] font-normal text-ink-3 underline"
                 >
                   解除
