@@ -2,6 +2,13 @@
   "permissions": {
     "additionalDirectories": [
       "../.."
+    ],
+    "allow": [
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)"
     ]
   }
 }

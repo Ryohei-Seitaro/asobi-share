@@ -4,18 +4,24 @@ author: Seitaro
 type: decision
 ---
 
-# hqのGit運用ルールを導入（ブランチ＋PR＋squash merge）
+# hqのGit運用ルールを導入（ブランチ＋PR＋squash merge、開発スピード優先）
 
 ## 内容
 hqで策定された全社共通のGit運用ルール（`../../org/git-workflow.md`）をこのリポジトリに
-適用した。
+適用した。**現方針は開発スピード優先で、マージをブロックするゲートは置かない。**
 
-- `.github/pull_request_template.md` と `.github/workflows/ci.yml`（lint）を追加
+- `.github/pull_request_template.md` と `.github/workflows/ci.yml`（lint、参考情報）を追加
+- `.claude/settings.json` の `permissions.allow` に `gh pr create` / `gh pr merge` /
+  `git push` を追加（PR作成〜マージをClaudeにスムーズに実行させるため）
 - `CLAUDE.md` に「Git運用ルール」節を追加
-- 以降、`main`への直pushはせず、機能追加・修正は必ずブランチ＋PR（squash merge固定）
-- 起票者本人のセルフ動作確認がマージの必須条件。相手のApproveは原則不要
-- `main` の branch protection（PR必須／force-push・削除禁止／必須Approve数0）を設定
+- 以降、`main`への直pushはせず、変更はブランチ＋PR（squash merge固定）
+- **PR作成〜squash mergeまで、依頼されたセッションのClaudeが実行してよい**（CIのgreenも
+  待たない）。相手のApproveは不要
+- セルフ動作確認は各自の心構え。PRテンプレのチェック欄は自己申告であり検証の仕組みではない
+- `main` の branch protection は任意（現方針では未設定でよい）
 
 ## 背景
-2人が別々にAIと対話して作業するため、`main`を常に動く状態に保つ仕組みが必要だった。
+2人が別々にAIと対話して作業するため、`main`を「原則いつでも動く状態」に保ちたい一方、
+現段階では開発スピードを優先する判断。プロセスは「ブランチ＋PR＋squash mergeの記録」だけ
+残す最小構成にし、レビュー必須・CI必須といったゲートは置かない。事故が増えたら締め直す。
 横断側の詳細な意思決定は hq の `memory/20260906_git-workflow.md` を参照。
