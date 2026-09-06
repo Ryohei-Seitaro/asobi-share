@@ -1,0 +1,38 @@
+# hq/org/templates/ci.yml を asobi-share 向けに調整した版。
+# アプリは web/ 配下（npm）。lint のみ実行。build/test はビルド用 env を
+# GitHub Secrets に入れてから有効化する。運用ルールは hq/org/git-workflow.md 参照。
+# branch protection の required status check には、このジョブ名 "ci" を登録する。
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+defaults:
+  run:
+    working-directory: web
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      # - name: Build
+      #   run: npm run build --if-present
+      # - name: Test
+      #   run: npm run test --if-present
