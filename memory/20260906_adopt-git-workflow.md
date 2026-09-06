@@ -10,9 +10,10 @@ type: decision
 hqで策定された全社共通のGit運用ルール（`../../org/git-workflow.md`）をこのリポジトリに
 適用した。**現方針は開発スピード優先で、マージをブロックするゲートは置かない。**
 
-- `.github/pull_request_template.md` と `.github/workflows/ci.yml`（lint、参考情報）を追加
+- `.github/pull_request_template.md` を追加
 - `.claude/settings.json` の `permissions.allow` に `gh pr create` / `gh pr merge` /
   `git push` を追加（PR作成〜マージをClaudeにスムーズに実行させるため）
+- 自動CIは当面置かない（lintだけでは費用対効果が薄い。build/testを回せるenv整備後に追加）
 - `CLAUDE.md` に「Git運用ルール」節を追加
 - 以降、`main`への直pushはせず、変更はブランチ＋PR（squash merge固定）
 - **PR作成〜squash mergeまで、依頼されたセッションのClaudeが実行してよい**（CIのgreenも
