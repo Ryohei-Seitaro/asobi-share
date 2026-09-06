@@ -3,7 +3,7 @@ import { SignInButton } from "@clerk/nextjs";
 import { and, desc, eq, gte, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trips as tripsTable, tripSaves, tripPurchases } from "@/db/schema";
-import { getOrCreateUser } from "@/lib/auth";
+import { getCurrentUserId } from "@/lib/auth";
 import { ChatSuggest } from "@/components/ChatSuggest";
 import { TripCardPhotos } from "@/components/TripCardPhotos";
 import { GENRE_CATEGORIES, subgenresOf, categoryOf, isCategory, isSubgenre } from "@/lib/genres";
@@ -150,27 +150,28 @@ export default async function DiscoverPage({
   const filters: Filters = { q, gcat, genre, tab, budget, intl, nights, party, season };
 
   const db = getDb();
-  const user = await getOrCreateUser();
+  // 読み取り専用ページなので Clerk API を叩かず JWT から userId だけ取る。
+  const userId = await getCurrentUserId();
 
-  let list: (typeof tripsTable.$inferSelect)[] = [];
+  type Trip = typeof tripsTable.$inferSelect;
+  let listPromise: Promise<Trip[]> = Promise.resolve([]);
   if (tab === "mine") {
-    if (user) {
-      list = await db
+    if (userId) {
+      listPromise = db
         .select()
         .from(tripsTable)
-        .where(eq(tripsTable.authorId, user.id))
+        .where(eq(tripsTable.authorId, userId))
         .orderBy(desc(tripsTable.savesCount));
     }
   } else if (tab === "saved") {
-    if (user) {
-      list = (
-        await db
-          .select({ trip: tripsTable })
-          .from(tripSaves)
-          .innerJoin(tripsTable, eq(tripSaves.tripId, tripsTable.id))
-          .where(eq(tripSaves.userId, user.id))
-          .orderBy(desc(tripSaves.createdAt))
-      ).map((r) => r.trip);
+    if (userId) {
+      listPromise = db
+        .select({ trip: tripsTable })
+        .from(tripSaves)
+        .innerJoin(tripsTable, eq(tripSaves.tripId, tripsTable.id))
+        .where(eq(tripSaves.userId, userId))
+        .orderBy(desc(tripSaves.createdAt))
+        .then((rows) => rows.map((r) => r.trip));
     }
   } else {
     const conditions = [
@@ -200,31 +201,30 @@ export default async function DiscoverPage({
       if (partyConditions.length) conditions.push(and(...partyConditions)!);
     }
 
-    list = await db
+    listPromise = db
       .select()
       .from(tripsTable)
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(SORT_COLUMN[tab]));
   }
 
-  const savedTripIds = new Set(
-    user
-      ? (
-          await db.select({ tripId: tripSaves.tripId }).from(tripSaves).where(eq(tripSaves.userId, user.id))
-        ).map((r) => r.tripId)
-      : []
-  );
+  // 一覧・保存済みID・購入済みID は互いに独立なので直列awaitせず並列で投げる
+  // （neon-http は1クエリ=1リクエストなので直列だと往復回数だけ待たされる）。
+  const savedPromise: Promise<{ tripId: string }[]> = userId
+    ? db.select({ tripId: tripSaves.tripId }).from(tripSaves).where(eq(tripSaves.userId, userId))
+    : Promise.resolve([]);
+  const purchasedPromise: Promise<{ tripId: string }[]> = userId
+    ? db.select({ tripId: tripPurchases.tripId }).from(tripPurchases).where(eq(tripPurchases.userId, userId))
+    : Promise.resolve([]);
 
-  const purchasedTripIds = new Set(
-    user
-      ? (
-          await db
-            .select({ tripId: tripPurchases.tripId })
-            .from(tripPurchases)
-            .where(eq(tripPurchases.userId, user.id))
-        ).map((r) => r.tripId)
-      : []
-  );
+  const [list, savedRows, purchasedRows] = await Promise.all([
+    listPromise,
+    savedPromise,
+    purchasedPromise,
+  ]);
+
+  const savedTripIds = new Set(savedRows.map((r) => r.tripId));
+  const purchasedTripIds = new Set(purchasedRows.map((r) => r.tripId));
 
   const activeFilterCount = [
     !!q,
@@ -387,7 +387,7 @@ export default async function DiscoverPage({
           ))}
         </div>
 
-        {isPersonalTab && !user ? (
+        {isPersonalTab && !userId ? (
           <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
             <p className="text-[13px] text-ink-2">
               {tab === "mine" ? "自分の旅程" : "保存した旅程"}を見るにはログインしてください。

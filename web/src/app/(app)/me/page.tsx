@@ -30,15 +30,14 @@ export default async function MePage() {
   }
 
   const db = getDb();
-  const myTrips = await db
-    .select()
-    .from(tripsTable)
-    .where(eq(tripsTable.authorId, user.id))
-    .orderBy(desc(tripsTable.savesCount));
-
-  const balanceRow = await db.query.coinBalances.findFirst({
-    where: eq(coinBalances.userId, user.id),
-  });
+  const [myTrips, balanceRow] = await Promise.all([
+    db
+      .select()
+      .from(tripsTable)
+      .where(eq(tripsTable.authorId, user.id))
+      .orderBy(desc(tripsTable.savesCount)),
+    db.query.coinBalances.findFirst({ where: eq(coinBalances.userId, user.id) }),
+  ]);
   const coinBalance = balanceRow?.balance ?? 0;
 
   const totalSaves = myTrips.reduce((sum, t) => sum + t.savesCount, 0);
