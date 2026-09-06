@@ -13,10 +13,12 @@ export function TripCardPhotos({
   photos,
   alt,
   isSaved,
+  isPurchased,
 }: {
   photos: string[];
   alt: string;
   isSaved?: boolean;
+  isPurchased?: boolean;
 }) {
   const pages = chunk(photos, 3);
   const [page, setPage] = useState(0);
@@ -26,6 +28,7 @@ export function TripCardPhotos({
     return (
       <div className="relative h-[104px] bg-surface-2">
         {isSaved && <SavedBadge />}
+        {isPurchased && <PurchasedBadge />}
       </div>
     );
   }
@@ -49,6 +52,7 @@ export function TripCardPhotos({
       }}
     >
       {isSaved && <SavedBadge />}
+      {isPurchased && <PurchasedBadge />}
       <div
         className={`grid h-full gap-0.5 ${
           current.length >= 3 ? "grid-cols-[2fr_1fr_1fr]" : current.length === 2 ? "grid-cols-2" : "grid-cols-1"
@@ -112,6 +116,17 @@ function SavedBadge() {
         <path d="M2.5 6 L5 8.5 L9.5 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       保存済み
+    </span>
+  );
+}
+
+function PurchasedBadge() {
+  return (
+    <span className="absolute right-2 top-2 z-20 flex items-center gap-1 rounded-full bg-money/90 px-2 py-[3px] text-[10.5px] font-bold text-white shadow-sm">
+      <svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true">
+        <path d="M2.5 6 L5 8.5 L9.5 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      購入済み
     </span>
   );
 }

@@ -40,10 +40,9 @@ export function AddToCalendar({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="カレンダーに追加">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="カレンダーに追加">
       <button aria-label="閉じる" onClick={onClose} className="absolute inset-0 bg-black/40" />
-      <div className="relative w-full max-w-[440px] rounded-t-[20px] border border-line bg-surface px-5 pb-7 pt-4">
-        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
+      <div className="relative max-h-[85vh] w-full max-w-[400px] overflow-y-auto rounded-[20px] border border-line bg-surface p-5 shadow-xl">
         <h2 className="mb-1 font-display text-[16px] font-semibold">カレンダーに追加</h2>
         <p className="mb-4 text-[12px] leading-[1.6] text-ink-3">
           {dayCount > 1
@@ -61,24 +60,16 @@ export function AddToCalendar({
           />
         </label>
 
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={handleGoogle}
-            disabled={isPending || !date}
-            className="rounded-[11px] bg-plan px-5 py-3 text-[14px] font-bold text-white disabled:opacity-50"
-          >
-            {isPending ? "登録中…" : "Googleカレンダーに登録"}
-          </button>
-          <a
-            href={`/api/trips/${tripId}/ics?start=${date}`}
-            className="rounded-[11px] border border-line bg-surface-3 px-5 py-3 text-center text-[14px] font-bold text-ink-2"
-          >
-            .icsファイルを保存
-          </a>
-          <p className="px-1 text-[11px] leading-[1.6] text-ink-3">
-            .ics は Apple カレンダー・Outlook のほか、TimeTree でもファイルを共有 →「カレンダーに追加」で取り込めます。
-          </p>
-        </div>
+        <button
+          onClick={handleGoogle}
+          disabled={isPending || !date}
+          className="w-full rounded-[11px] bg-plan px-5 py-3 text-[14px] font-bold text-white disabled:opacity-50"
+        >
+          {isPending ? "登録中…" : "Googleカレンダーに登録"}
+        </button>
+        <p className="mt-2 px-1 text-[11px] leading-[1.6] text-ink-3">
+          Googleカレンダーと連携して、選んだ日から予定をまとめて登録します。
+        </p>
 
         {result?.kind === "google-ok" && (
           <p className="mt-3 rounded-[9px] bg-plan-soft px-3 py-2 text-[12px] leading-[1.6] text-plan">

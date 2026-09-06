@@ -63,6 +63,7 @@ export function TripDetail({
   const [likeCount, setLikeCount] = useState(trip.likesCount);
   const [purchased, setPurchased] = useState(initialPurchased);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [coinSheetOpen, setCoinSheetOpen] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -71,8 +72,6 @@ export function TripDetail({
       const result = await toggleSave(trip.id);
       setSaved(result.saved);
       setSaveCount(result.savesCount);
-      // 保存した直後に「カレンダーに追加しますか？」を出す
-      if (result.saved) setCalOpen(true);
     });
   }
 
@@ -91,6 +90,7 @@ export function TripDetail({
       const result = await purchaseTrip(trip.id, method);
       if (result.ok) {
         setPurchased(true);
+        setCoinSheetOpen(false);
       } else {
         setPurchaseError(result.error);
       }
@@ -100,14 +100,55 @@ export function TripDetail({
   const day = trip.days[dayIndex];
   const hasDetail = trip.days.length > 0 && day?.events.length > 0;
   const paidFrom = purchased ? null : trip.paidFromEventOrder;
+  const lockedCount =
+    paidFrom != null && day ? Math.max(0, day.events.length - paidFrom) : null;
+
+  const paywall =
+    paidFrom != null ? (
+      <Paywall
+        priceYen={trip.priceYen}
+        priceCoin={trip.priceCoin}
+        lockedCount={lockedCount}
+        isLoggedIn={isLoggedIn}
+        coinBalance={coinBalance}
+        isPending={isPending}
+        error={purchaseError}
+        onBuyYen={() => handlePurchase("yen")}
+        onOpenCoinSheet={() => {
+          setPurchaseError(null);
+          setCoinSheetOpen(true);
+        }}
+      />
+    ) : null;
 
   if (!hasDetail) {
     return (
       <div className="flex flex-1 flex-col">
-        <TripHeader trip={trip} saved={saved} saveCount={saveCount} />
-        <div className="flex flex-1 items-center justify-center px-6 text-center text-[13px] text-ink-3">
-          この旅程はまだ時間割の詳細が登録されていません。
-        </div>
+        <TripHeader trip={trip} saved={saved} saveCount={saveCount} purchased={purchased} />
+        {paywall ? (
+          <div className="flex-1 overflow-y-auto bg-surface-2 px-4 py-5">
+            <p className="mb-4 text-[13px] leading-[1.7] text-ink-2">
+              この旅程の中身（時間割・立ち寄り先・気をつけること）は有料です。
+              購入すると全編が読めます。
+            </p>
+            {paywall}
+          </div>
+        ) : (
+          <div className="flex flex-1 items-center justify-center px-6 text-center text-[13px] text-ink-3">
+            この旅程はまだ時間割の詳細が登録されていません。
+          </div>
+        )}
+        {coinSheetOpen && trip.priceCoin != null && (
+          <CoinSheet
+            priceCoin={trip.priceCoin}
+            balance={coinBalance}
+            returnTo={`/trips/${trip.id}`}
+            isPending={isPending}
+            error={purchaseError}
+            onConfirm={() => handlePurchase("coin")}
+            onClose={() => setCoinSheetOpen(false)}
+          />
+        )}
         <SaveLikeBar
           isLoggedIn={isLoggedIn}
           isPending={isPending}
@@ -133,9 +174,17 @@ export function TripDetail({
   const close = toMinutes(day.closeTime);
   const gridHeight = (close - open) * PPM;
 
+  // 有料ライン（最初のロック済みイベント）の縦位置。購入パネルはここに重ねて出す。
+  const firstLocked =
+    paidFrom != null ? day.events.find((ev) => ev.orderIndex >= paidFrom) : undefined;
+  const firstLockedStart = firstLocked
+    ? (layer === "plan" ? firstLocked.planStart : (firstLocked.actualStart ?? firstLocked.planStart))
+    : null;
+  const paywallTop = firstLockedStart != null ? (toMinutes(firstLockedStart) - open) * PPM + 12 : 0;
+
   return (
     <div className="flex flex-1 flex-col">
-      <TripHeader trip={trip} saved={saved} saveCount={saveCount} />
+      <TripHeader trip={trip} saved={saved} saveCount={saveCount} purchased={purchased} />
 
       <div className="flex gap-1 bg-surface px-4 pt-2.5">
         {trip.days.map((d, i) => (
@@ -304,62 +353,28 @@ export function TripDetail({
             );
           })}
 
-          {paidFrom != null && day.events[paidFrom] && (
+          {paywall && (
             <div
-              className="absolute left-11 right-0 rounded-xl border border-money bg-surface p-3.5 text-center shadow-lg"
-              style={{
-                top:
-                  (toMinutes(
-                    (layer === "plan"
-                      ? day.events[paidFrom].planStart
-                      : (day.events[paidFrom].actualStart ?? day.events[paidFrom].planStart)) as string
-                  ) -
-                    open) *
-                    PPM +
-                  16,
-              }}
+              className="absolute left-11 right-0 z-10"
+              style={{ top: firstLocked ? paywallTop : gridHeight + 8 }}
             >
-              <span className="mb-1 block font-mono-num text-[22px] font-medium tabular-nums text-money">
-                ¥{trip.priceYen.toLocaleString()}
-              </span>
-              <p className="mb-2.5 text-[12.5px] leading-[1.6] text-ink-2">
-                のこり{day.events.length - paidFrom}件の予定と、
-                <br />
-                ぜんぶの「気をつけること」が読めます
-              </p>
-              {purchaseError && (
-                <p className="mb-2 text-[11px] leading-[1.5] text-actual">{purchaseError}</p>
-              )}
-              {isLoggedIn ? (
-                <div className="flex flex-col gap-[7px]">
-                  <button
-                    onClick={() => handlePurchase("yen")}
-                    disabled={isPending}
-                    className="rounded-[10px] bg-money px-5 py-2.5 text-[13.5px] font-bold text-white disabled:opacity-50"
-                  >
-                    ¥{trip.priceYen.toLocaleString()}で購入する
-                  </button>
-                  {trip.priceCoin != null && (
-                    <button
-                      onClick={() => handlePurchase("coin")}
-                      disabled={isPending}
-                      className="rounded-[10px] border border-coin bg-transparent px-5 py-2.5 text-[13.5px] font-bold text-coin disabled:opacity-50"
-                    >
-                      🪙 {trip.priceCoin.toLocaleString()}コインで購入する（残高 🪙{coinBalance.toLocaleString()}）
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <SignInButton mode="modal">
-                  <button className="w-full rounded-[10px] bg-money px-5 py-2.5 text-[13.5px] font-bold text-white">
-                    ログインして購入する
-                  </button>
-                </SignInButton>
-              )}
+              {paywall}
             </div>
           )}
         </div>
       </div>
+
+      {coinSheetOpen && trip.priceCoin != null && (
+        <CoinSheet
+          priceCoin={trip.priceCoin}
+          balance={coinBalance}
+          returnTo={`/trips/${trip.id}`}
+          isPending={isPending}
+          error={purchaseError}
+          onConfirm={() => handlePurchase("coin")}
+          onClose={() => setCoinSheetOpen(false)}
+        />
+      )}
 
       <SaveLikeBar
         isLoggedIn={isLoggedIn}
@@ -456,10 +471,12 @@ function TripHeader({
   trip,
   saved,
   saveCount,
+  purchased,
 }: {
   trip: Trip;
   saved: boolean;
   saveCount: number;
+  purchased: boolean;
 }) {
   return (
     <>
@@ -482,6 +499,14 @@ function TripHeader({
       <div className="border-b border-line-soft bg-surface px-4 py-4">
         <h2 className="mb-2 font-display text-[20px] font-semibold leading-[1.4]">{trip.title}</h2>
         <div className="mb-[11px] flex flex-wrap gap-1.5">
+          {purchased && trip.priceYen > 0 && (
+            <span className="flex items-center gap-1 rounded-full bg-money/90 px-2.5 py-1 text-[11.5px] font-bold text-white">
+              <svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M2.5 6 L5 8.5 L9.5 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              購入済み
+            </span>
+          )}
           <span className="rounded-full bg-plan-soft px-2.5 py-1 text-[11.5px] font-medium text-plan">#{trip.genre}</span>
           <span className="rounded-full bg-plan-soft px-2.5 py-1 text-[11.5px] font-medium text-plan">#{trip.daysLabel}</span>
           {monthSeasonLabel(trip.startDate) && (
@@ -504,5 +529,156 @@ function TripHeader({
         </div>
       </div>
     </>
+  );
+}
+
+// note風の有料区切り＋購入パネル（無料プレビューの下に置く）
+function Paywall({
+  priceYen,
+  priceCoin,
+  lockedCount,
+  isLoggedIn,
+  coinBalance,
+  isPending,
+  error,
+  onBuyYen,
+  onOpenCoinSheet,
+}: {
+  priceYen: number;
+  priceCoin: number | null;
+  lockedCount: number | null;
+  isLoggedIn: boolean;
+  coinBalance: number;
+  isPending: boolean;
+  error: string | null;
+  onBuyYen: () => void;
+  onOpenCoinSheet: () => void;
+}) {
+  return (
+    <div className="mx-1">
+      <div className="mb-3 flex items-center gap-2 text-[11px] font-bold tracking-wide text-money">
+        <span className="h-px flex-1 bg-money/40" />
+        <span className="rounded-full bg-surface-2 px-2 py-0.5">ここから先は有料です</span>
+        <span className="h-px flex-1 bg-money/40" />
+      </div>
+      <div className="rounded-2xl border border-money bg-surface p-4 shadow-lg">
+        <p className="mb-1 text-[12.5px] leading-[1.65] text-ink-2">
+          {lockedCount != null && lockedCount > 0 ? (
+            <>
+              のこり<b className="text-ink">{lockedCount}件</b>の予定と、ぜんぶの「気をつけること」・立ち寄り先が読めます。
+            </>
+          ) : (
+            <>この旅程の時間割・立ち寄り先・気をつけることが、ぜんぶ読めます。</>
+          )}
+        </p>
+        <div className="my-3 flex items-baseline gap-2">
+          <span className="font-mono-num text-[24px] font-medium tabular-nums text-money">
+            ¥{priceYen.toLocaleString()}
+          </span>
+          {priceCoin != null && (
+            <span className="font-mono-num text-[13px] tabular-nums text-coin">
+              または 🪙{priceCoin.toLocaleString()}
+            </span>
+          )}
+        </div>
+        {error && <p className="mb-2 text-[11.5px] leading-[1.5] text-actual">{error}</p>}
+        {isLoggedIn ? (
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={onBuyYen}
+              disabled={isPending}
+              className="rounded-[11px] bg-money px-5 py-3 text-[14px] font-bold text-white disabled:opacity-50"
+            >
+              ¥{priceYen.toLocaleString()}で購入する
+            </button>
+            {priceCoin != null && (
+              <button
+                onClick={onOpenCoinSheet}
+                disabled={isPending}
+                className="rounded-[11px] border border-coin px-5 py-3 text-[14px] font-bold text-coin disabled:opacity-50"
+              >
+                🪙 コインで購入する（残高 🪙{coinBalance.toLocaleString()}）
+              </button>
+            )}
+          </div>
+        ) : (
+          <SignInButton mode="modal">
+            <button className="w-full rounded-[11px] bg-money px-5 py-3 text-[14px] font-bold text-white">
+              ログインして購入する
+            </button>
+          </SignInButton>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// コイン支払い画面（確認シート）。残高が足りなければチャージ画面へ誘導する。
+// チャージ画面には returnTo を渡し、チャージ完了後にこの記事へ戻れるようにする。
+function CoinSheet({
+  priceCoin,
+  balance,
+  returnTo,
+  isPending,
+  error,
+  onConfirm,
+  onClose,
+}: {
+  priceCoin: number;
+  balance: number;
+  returnTo: string;
+  isPending: boolean;
+  error: string | null;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const short = balance < priceCoin;
+  const deficit = priceCoin - balance;
+  const chargeHref = `/me/charge?need=${deficit}&return=${encodeURIComponent(returnTo)}`;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="コインで購入">
+      <button aria-label="閉じる" onClick={onClose} className="absolute inset-0 bg-black/40" />
+      <div className="relative max-h-[85vh] w-full max-w-[400px] overflow-y-auto rounded-[20px] border border-line bg-surface p-5 shadow-xl">
+        <h2 className="mb-3 font-display text-[16px] font-semibold">コインで購入</h2>
+        <dl className="mb-4 flex flex-col gap-1.5 text-[13px]">
+          <div className="flex justify-between">
+            <dt className="text-ink-3">この旅程</dt>
+            <dd className="font-mono-num tabular-nums text-coin">🪙{priceCoin.toLocaleString()}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-ink-3">いまの残高</dt>
+            <dd className="font-mono-num tabular-nums text-ink-2">🪙{balance.toLocaleString()}</dd>
+          </div>
+          {short && (
+            <div className="flex justify-between">
+              <dt className="text-actual">不足</dt>
+              <dd className="font-mono-num tabular-nums text-actual">🪙{deficit.toLocaleString()}</dd>
+            </div>
+          )}
+        </dl>
+        {error && (
+          <p className="mb-3 rounded-[9px] bg-actual-soft px-3 py-2 text-[12px] leading-[1.6] text-actual">{error}</p>
+        )}
+        {short ? (
+          <Link
+            href={chargeHref}
+            className="block rounded-[11px] bg-coin px-5 py-3 text-center text-[14px] font-bold text-white"
+          >
+            不足分（🪙{deficit.toLocaleString()}）をチャージする
+          </Link>
+        ) : (
+          <button
+            onClick={onConfirm}
+            disabled={isPending}
+            className="w-full rounded-[11px] bg-coin px-5 py-3 text-[14px] font-bold text-white disabled:opacity-50"
+          >
+            {isPending ? "処理中…" : `🪙${priceCoin.toLocaleString()} を使って購入する`}
+          </button>
+        )}
+        <p className="mt-2 text-center text-[11px] text-ink-3">
+          {short ? "チャージが終わると、この記事に戻ります。" : "購入すると全編が読めます。"}
+        </p>
+      </div>
+    </div>
   );
 }

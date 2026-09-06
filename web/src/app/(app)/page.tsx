@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SignInButton } from "@clerk/nextjs";
 import { and, desc, eq, gte, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { trips as tripsTable, tripSaves } from "@/db/schema";
+import { trips as tripsTable, tripSaves, tripPurchases } from "@/db/schema";
 import { getOrCreateUser } from "@/lib/auth";
 import { ChatSuggest } from "@/components/ChatSuggest";
 import { TripCardPhotos } from "@/components/TripCardPhotos";
@@ -215,6 +215,17 @@ export default async function DiscoverPage({
       : []
   );
 
+  const purchasedTripIds = new Set(
+    user
+      ? (
+          await db
+            .select({ tripId: tripPurchases.tripId })
+            .from(tripPurchases)
+            .where(eq(tripPurchases.userId, user.id))
+        ).map((r) => r.tripId)
+      : []
+  );
+
   const activeFilterCount = [
     !!q,
     genre !== "すべて" || !!gcat,
@@ -407,13 +418,14 @@ export default async function DiscoverPage({
                     : `${trip.savesCount} 保存`;
               const photos = trip.coverPhotos.length ? trip.coverPhotos : [];
               const isSaved = savedTripIds.has(trip.id);
+              const isPurchased = purchasedTripIds.has(trip.id);
               return (
                 <Link
                   key={trip.id}
                   href={`/trips/${trip.id}`}
                   className="overflow-hidden rounded-[14px] border border-line bg-surface text-left text-ink"
                 >
-                  <TripCardPhotos photos={photos} alt={trip.title} isSaved={isSaved} />
+                  <TripCardPhotos photos={photos} alt={trip.title} isSaved={isSaved} isPurchased={isPurchased} />
                   <div className="px-[13px] pb-[13px] pt-[11px]">
                     <p className="mb-[5px] text-[14px] font-bold leading-[1.45]">{trip.title}</p>
                     <div className="flex flex-wrap items-center gap-2 text-[11.5px] text-ink-2">
@@ -435,10 +447,14 @@ export default async function DiscoverPage({
                       </span>
                       <span
                         className={`rounded-[5px] px-[7px] py-0.5 font-mono-num tabular-nums ${
-                          trip.priceYen ? "bg-money-soft text-money font-medium" : "bg-plan-soft text-plan"
+                          isPurchased
+                            ? "bg-plan-soft text-plan font-medium"
+                            : trip.priceYen
+                              ? "bg-money-soft text-money font-medium"
+                              : "bg-plan-soft text-plan"
                         }`}
                       >
-                        {trip.priceYen ? `¥${trip.priceYen}` : "無料"}
+                        {isPurchased ? "購入済み" : trip.priceYen ? `¥${trip.priceYen}` : "無料"}
                       </span>
                       <span className="ml-auto">{metric}</span>
                     </div>
