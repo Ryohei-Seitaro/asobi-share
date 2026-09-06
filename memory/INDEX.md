@@ -6,6 +6,7 @@
 
 新しい順に追記する。
 
+- [2026-09-07 見つける画面の遷移ごとの再レンダリング遅延を削減](20260907_discover-render-latency.md) — フィルタが全てフルのサーバー遷移で毎回 Clerk API 1往復＋DB直列4往復。`loading.tsx` 追加／`currentUser()`→`auth()`／独立クエリを `Promise.all` 並列化。インデックス追加はデータ増加時の後回し
 - [2026-09-06 有料記事まわりの改善（⑦）— 購入パネルの位置・中央モーダル・カレンダーはAPI一本化](20260906_paid-article-and-modal-and-calendar.md) — 購入パネルは有料ライン位置に重ねる／ポップアップは中央モーダルで統一（ボトムシート廃止）／カレンダーは.ics保存をやめGoogle直接登録のみ（TripEditorの.icsは残す）／チャージは記事⇄チャージ画面の往復
 - [2026-09-06 旅程を日付ベースに（trips.start_date）＋季節フィルタ（CEO⑦バッチ④）](20260906_date-based-itinerary.md) — start_date 1本追加、日数はDAY数から自動、季節は開始月で判定、type=dateで日付入力
 - [2026-09-06 hqのGit運用ルールを導入（ブランチ＋PR＋squash merge）](20260906_adopt-git-workflow.md) — PRテンプレ・settings.json許可・CLAUDE.md追記（開発スピード優先、CI・マージゲートなし）
