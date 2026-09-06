@@ -124,7 +124,7 @@ export function TripDetail({
   if (!hasDetail) {
     return (
       <div className="flex flex-1 flex-col">
-        <TripHeader trip={trip} saved={saved} saveCount={saveCount} />
+        <TripHeader trip={trip} saved={saved} saveCount={saveCount} purchased={purchased} />
         {paywall ? (
           <div className="flex-1 overflow-y-auto bg-surface-2 px-4 py-5">
             <p className="mb-4 text-[13px] leading-[1.7] text-ink-2">
@@ -175,7 +175,7 @@ export function TripDetail({
 
   return (
     <div className="flex flex-1 flex-col">
-      <TripHeader trip={trip} saved={saved} saveCount={saveCount} />
+      <TripHeader trip={trip} saved={saved} saveCount={saveCount} purchased={purchased} />
 
       <div className="flex gap-1 bg-surface px-4 pt-2.5">
         {trip.days.map((d, i) => (
@@ -454,10 +454,12 @@ function TripHeader({
   trip,
   saved,
   saveCount,
+  purchased,
 }: {
   trip: Trip;
   saved: boolean;
   saveCount: number;
+  purchased: boolean;
 }) {
   return (
     <>
@@ -480,6 +482,14 @@ function TripHeader({
       <div className="border-b border-line-soft bg-surface px-4 py-4">
         <h2 className="mb-2 font-display text-[20px] font-semibold leading-[1.4]">{trip.title}</h2>
         <div className="mb-[11px] flex flex-wrap gap-1.5">
+          {purchased && trip.priceYen > 0 && (
+            <span className="flex items-center gap-1 rounded-full bg-money/90 px-2.5 py-1 text-[11.5px] font-bold text-white">
+              <svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M2.5 6 L5 8.5 L9.5 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              購入済み
+            </span>
+          )}
           <span className="rounded-full bg-plan-soft px-2.5 py-1 text-[11.5px] font-medium text-plan">#{trip.genre}</span>
           <span className="rounded-full bg-plan-soft px-2.5 py-1 text-[11.5px] font-medium text-plan">#{trip.daysLabel}</span>
           {monthSeasonLabel(trip.startDate) && (
