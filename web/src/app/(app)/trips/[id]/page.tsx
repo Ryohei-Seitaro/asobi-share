@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { trips as tripsTable, tripSaves, tripLikes, tripPurchases, coinBalances } from "@/db/schema";
 import { TripDetail } from "@/components/TripDetail";
-import { getOrCreateUser } from "@/lib/auth";
+import { getCurrentUserId } from "@/lib/auth";
 
 export default async function TripDetailPage({
   params,
@@ -35,18 +35,18 @@ export default async function TripDetailPage({
 
   if (!trip) notFound();
 
-  const user = await getOrCreateUser();
+  const userId = await getCurrentUserId();
   let initialSaved = false;
   let initialLiked = false;
   let purchased = trip.priceYen === 0; // 無料旅程は購入済み扱い
   let coinBalance = 0;
-  if (user) {
-    const isAuthor = trip.authorId === user.id;
+  if (userId) {
+    const isAuthor = trip.authorId === userId;
     const [saveRow, likeRow, purchaseRow, balanceRow] = await Promise.all([
-      db.query.tripSaves.findFirst({ where: and(eq(tripSaves.tripId, id), eq(tripSaves.userId, user.id)) }),
-      db.query.tripLikes.findFirst({ where: and(eq(tripLikes.tripId, id), eq(tripLikes.userId, user.id)) }),
-      db.query.tripPurchases.findFirst({ where: and(eq(tripPurchases.tripId, id), eq(tripPurchases.userId, user.id)) }),
-      db.query.coinBalances.findFirst({ where: eq(coinBalances.userId, user.id) }),
+      db.query.tripSaves.findFirst({ where: and(eq(tripSaves.tripId, id), eq(tripSaves.userId, userId)) }),
+      db.query.tripLikes.findFirst({ where: and(eq(tripLikes.tripId, id), eq(tripLikes.userId, userId)) }),
+      db.query.tripPurchases.findFirst({ where: and(eq(tripPurchases.tripId, id), eq(tripPurchases.userId, userId)) }),
+      db.query.coinBalances.findFirst({ where: eq(coinBalances.userId, userId) }),
     ]);
     initialSaved = !!saveRow;
     initialLiked = !!likeRow;
@@ -86,7 +86,7 @@ export default async function TripDetailPage({
       trip={safeTrip}
       initialSaved={initialSaved}
       initialLiked={initialLiked}
-      isLoggedIn={!!user}
+      isLoggedIn={!!userId}
       purchased={purchased}
       coinBalance={coinBalance}
     />
