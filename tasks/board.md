@@ -17,18 +17,9 @@
 - [ ] [infra][backend] Google Calendar連携の本番運用に向けて、Clerk DashboardでGoogleソーシャル接続を独自クレデンシャル化し`calendar.events`スコープを追加する（Google Cloud ConsoleでのOAuthクライアント作成・Calendar API有効化を含む） (起票: 久野, 2026-09-06)
 - [ ] [backend] Seitaro側のローカル/開発DBでも`web/scripts/backfill-trip-filters.ts`を実行し、既存tripsのnights/international/partySize系が正しい値になっているか確認する (起票: 久野, 2026-09-06)
 
-#### 2026-09-06 CEOフィードバック（7件バッチ・順に対応）
-
-- [ ] [frontend][backend][ui-ux] ⑦＋関連（有料記事まわり・1ブランチにまとめて実装／動作確認待ち）
-  - ⑦ 有料記事のコイン購入UIが出ない不具合。原因は有料トリップに時間割が無く`hasDetail=false`で早期returnし購入UIごと表示されないこと。`Paywall`（note風「ここから先は有料」区切り＋購入パネル）を時間割の有無に関わらず表示、`CoinSheet`（コイン支払い確認画面／残高不足なら`/me/charge`へ）、未購入は有料イベント本文をサーバー側で伏せる、seedで有料トリップにサンプル時間割を付与。
-  - ①修正：カレンダー登録の`oauth_token_retrieval_error`をtry/catchで握り「.icsから取り込んで」を表示（500回避）。`AddToCalendar`は.icsを主ボタン化、Google直接登録は「準備中」表記。保存ボタンでのカレンダーポップアップ自動表示を廃止。Google直接登録の本対応はtasks未完了[infra][backend]項目。
-  - 購入済みの有料記事に「購入済み」マーク：見つけるのカード（`PurchasedBadge`右上＋価格チップを「購入済み」表示）と旅程詳細ヘッダー。`tripPurchases`から集計。
-  - 残高不足時のチャージ導線：`CoinSheet`の不足時ボタンを「不足分（🪙N）をチャージする」にし、`/me/charge?need=N&return=/trips/{id}`へ遷移。チャージ画面は`return`（自サイト内絶対パスのみ許可）で戻り先を受け取り、①初期金額を不足分にあわせる ②戻るボタンを記事へ ③チャージ完了後1.4秒で自動的に記事へ戻す＋「記事に戻る」ボタン。`chargeCoin(amountYen, revalidate?)`で戻り先パスを`revalidatePath`し残高表示を最新化。
-  - レビュー指摘の修正：(a) 購入パネルが時間割の一番下にまとまって出ていたのを、旧仕様どおり有料ライン（最初のロック済みイベント）の縦位置にグリッドへ重ねて表示するよう戻した。(b) `CoinSheet`・`AddToCalendar`のポップアップを画面下からのボトムシートではなく中央モーダル（`items-center`・角丸全周・ドラッグハンドル廃止・`shadow-xl`）に変更。
-  - レビュー指摘の修正：旅程詳細の「カレンダーに追加」ポップアップから `.icsファイルを保存` ボタンを削除（動線が長く分かりにくいため）。Googleカレンダー直接登録（API方式）を唯一の主ボタンに。`addTripToGoogleCalendar` のエラー文言から `.ics` 案内を除去。つくる/編集画面（TripEditor, Ryohei実装）の .ics ダウンロード・取り込み、API ルート `/api/trips/[id]/ics` は残す。
-  (起票: Seitaro, 2026-09-06)
-
 ## 完了
+
+- [x] [frontend][backend][ui-ux] ⑦＋関連（有料記事まわり・PR #15 に1ブランチで集約）。⑦ 有料記事のコイン購入UIが出ない不具合＝有料トリップに時間割が無く`hasDetail=false`で早期returnしていた。`Paywall`（note風「ここから先は有料」区切り＋購入パネル）を時間割の有無に関わらず、有料ライン（最初のロック済みイベント）の縦位置にグリッドへ重ねて表示。`CoinSheet`（コイン支払い確認）、未購入は有料本文をサーバー側で伏せる、seedにサンプル時間割。／①修正：カレンダー登録の`oauth_token_retrieval_error`をtry/catchで握って500回避。保存時のカレンダーポップアップ自動表示を廃止。／購入済みマーク（見つけるカード`PurchasedBadge`＋価格チップ／旅程詳細ヘッダー、`tripPurchases`集計）。／残高不足時のチャージ往復：`CoinSheet`不足時→`/me/charge?need=N&return=/trips/{id}`、`return`は自サイト内絶対パスのみ許可、初期額を不足分に、完了1.4秒後に自動で記事へ戻す＋「記事に戻る」、`chargeCoin(amountYen, revalidate?)`で戻り先を`revalidatePath`。／`CoinSheet`・`AddToCalendar`のポップアップを中央モーダル化（ボトムシート廃止）。／「カレンダーに追加」ポップアップから`.icsファイルを保存`を削除しGoogle直接登録（API方式）に一本化（TripEditorの.ics・APIルートは残す） (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 
 - [x] [frontend][ui-ux][planning] ⑥検索ウィザードを「見つける」のフィルタ欄に統合。`/search` は `/` へリダイレクト化、ボトムナビから「検索」タブを削除、見つけるヘッダーの虫めがねリンクを撤去。「行き先・キーワードで探す」を実際に効く GET フォーム化（`?q=` で title/genre を ilike 検索、現フィルタは hidden で維持）。フィルタが効いているときは `<details>` を開いた状態に (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
 - [x] [frontend][backend][ui-ux] ⑤フィルタは①③④でジャンル2階層・国内海外・日数・人数・予算・季節まで対応済み。残りの「つくるで必須入力化」を実施：つくる新規フォームで国内/海外・人数を必須（`required`＋サーバ側バリデーション）、メモ取り込みにも国内/海外・人数の入力欄を追加。日数はDAY数から自動（④）なので手動必須からは外した (起票: Seitaro, 2026-09-06 / 完了: Seitaro, 2026-09-06)
