@@ -265,6 +265,61 @@ const FEED = [
   },
 ];
 
+// 有料トリップ用の汎用サンプル時間割（写真なし・1日）。
+// paidFromEventOrder=3 なので先頭3件が無料プレビュー、残り2件が有料ライン内。
+const PAID_SAMPLE_DAY = {
+  dateLabel: "",
+  openTime: "08:00",
+  closeTime: "20:00",
+  events: [
+    {
+      title: "現地集合・チェックイン",
+      place: "現地の集合場所",
+      category: "transport" as const,
+      planStart: "09:00",
+      planEnd: "09:30",
+      detail: "集合場所と持ち物の確認。ここは無料で読めるプレビュー部分です。",
+      caution: null as string | null,
+    },
+    {
+      title: "午前のメインアクティビティ",
+      place: "メインスポット",
+      category: "sightseeing" as const,
+      planStart: "10:00",
+      planEnd: "12:00",
+      detail: "この旅程の目玉。混雑を避けるなら午前が正解。",
+      caution: null as string | null,
+    },
+    {
+      title: "昼ごはん",
+      place: "近くの食堂",
+      category: "food" as const,
+      planStart: "12:30",
+      planEnd: "13:30",
+      detail: "地元で人気の店。ここまでが無料プレビュー。",
+      caution: null as string | null,
+    },
+    {
+      title: "午後の穴場スポット",
+      place: "有料エリアのスポットA",
+      category: "sightseeing" as const,
+      planStart: "14:00",
+      planEnd: "16:00",
+      detail: "ガイドブックに載っていない場所。行き方・入場のコツを詳しく。",
+      caution: "夕方は道が分かりにくい。明るいうちに移動すること。",
+    },
+    {
+      title: "しめの立ち寄り",
+      place: "有料エリアのスポットB",
+      category: "other" as const,
+      planStart: "16:30",
+      planEnd: "18:00",
+      detail: "最後にここへ寄ると満足度が上がる。予約方法と価格の目安。",
+      caution: "土日は混む。開店直後を狙う。",
+    },
+  ],
+};
+
 // 京都トリップのみ、時間割の詳細（DAYS）まで持たせる
 const KYOTO_DAYS = [
   {
@@ -494,10 +549,39 @@ async function main() {
           }
         }
       }
+    } else if (f.priceYen > 0) {
+      // 有料トリップには汎用サンプル時間割を入れて、有料ライン（無料プレビュー→有料）が
+      // 実際に機能するようにする
+      const [tripDay] = await db
+        .insert(schema.tripDays)
+        .values({
+          tripId: trip.id,
+          dayIndex: 0,
+          dateLabel: PAID_SAMPLE_DAY.dateLabel,
+          openTime: PAID_SAMPLE_DAY.openTime,
+          closeTime: PAID_SAMPLE_DAY.closeTime,
+        })
+        .returning();
+
+      for (const [orderIndex, ev] of PAID_SAMPLE_DAY.events.entries()) {
+        await db.insert(schema.tripEvents).values({
+          dayId: tripDay.id,
+          orderIndex,
+          title: ev.title,
+          place: ev.place,
+          category: ev.category,
+          planStart: ev.planStart,
+          planEnd: ev.planEnd,
+          actualStart: ev.planStart,
+          actualEnd: ev.planEnd,
+          detail: ev.detail,
+          caution: ev.caution,
+        });
+      }
     }
   }
 
-  console.log(`seeded ${FEED.length} trips (1 with full itinerary detail)`);
+  console.log(`seeded ${FEED.length} trips (京都=フル時間割 / 有料トリップ=サンプル時間割)`);
 }
 
 main()
