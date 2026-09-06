@@ -436,6 +436,8 @@ async function main() {
         authorId: DEMO_USER_ID,
         title: f.title,
         genre: f.genre,
+        // 季節フィルタ用に月を散らす（i*5 mod 12 で12か月を一巡）
+        startDate: `2025-${String(((i * 5) % 12) + 1).padStart(2, "0")}-15`,
         daysLabel: f.daysLabel,
         nights: DAYS_LABEL_TO_NIGHTS[f.daysLabel] ?? 0,
         international: f.international,

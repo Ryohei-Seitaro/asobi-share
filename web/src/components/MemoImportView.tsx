@@ -32,6 +32,7 @@ export function MemoImportView() {
   const router = useRouter();
   const [text, setText] = useState("");
   const [genre, setGenre] = useState(ALL_SUBGENRES[0]);
+  const [startDate, setStartDate] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -59,6 +60,7 @@ export function MemoImportView() {
         await createTripFromMemo({
           title: parsed.title,
           genre,
+          startDate: startDate || null,
           coverPhotos: photos,
           days: parsed.days.map((d) => ({
             dateLabel: d.dateLabel,
@@ -118,6 +120,14 @@ export function MemoImportView() {
           onChange={(e) => setText(e.target.value)}
           placeholder={"京都1泊2日\n1日目\n9:15 京都駅到着\n10:05-11:40 伏見稲荷大社 千本鳥居"}
           className="mb-4 min-h-[160px] w-full resize-y rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
+        />
+
+        <label className="mb-1.5 block text-[11px] tracking-wide text-ink-3">いつ行った？（開始日・任意）</label>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="mb-4 w-full rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
         />
 
         <label className="mb-1.5 block text-[11px] tracking-wide text-ink-3">ジャンル（カテゴリ ＞ 種類）</label>

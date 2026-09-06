@@ -101,8 +101,22 @@ export default async function CreatePage() {
           </select>
         </div>
         <div>
+          <label htmlFor="startDate" className="mb-1.5 block text-[11px] tracking-wide text-ink-3">
+            いつ行った？（開始日）
+          </label>
+          <input
+            id="startDate"
+            name="startDate"
+            type="date"
+            className="w-full rounded-[9px] border border-line bg-surface-3 px-[11px] py-[9px] text-[13.5px] text-ink"
+          />
+          <p className="mt-1 text-[10.5px] text-ink-3">
+            日付を入れると「行った月・季節」が表示され、季節で探せるようになります。あとで編集画面でも変更できます。
+          </p>
+        </div>
+        <div>
           <label htmlFor="daysLabel" className="mb-1.5 block text-[11px] tracking-wide text-ink-3">
-            日数
+            日数（あとで日程を組むと自動更新されます）
           </label>
           <select
             id="daysLabel"

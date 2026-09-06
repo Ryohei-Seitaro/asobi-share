@@ -5,6 +5,7 @@ import {
   integer,
   boolean,
   timestamp,
+  date,
   uuid,
   primaryKey,
   uniqueIndex,
@@ -42,7 +43,8 @@ export const trips = pgTable("trips", {
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   genre: text("genre").notNull(), // タグ表示・chipsフィルタに使う値（例: "山登り", "デート"）
-  daysLabel: text("days_label").notNull(), // 表示用（例: "1泊2日", "日帰り"）
+  startDate: date("start_date"), // 旅程の開始日（YYYY-MM-DD）。日付ベース保存。nullable（旧データ・未設定）
+  daysLabel: text("days_label").notNull(), // 表示用（例: "1泊2日", "日帰り"）。startDateとday数から導出
   nights: integer("nights").notNull().default(0), // 構造化フィルタ用の宿泊数（0=日帰り）。daysLabelから導出
   international: boolean("international").notNull().default(false), // false=国内, true=海外
   partySizeMin: integer("party_size_min").notNull().default(1), // この人数からおすすめ

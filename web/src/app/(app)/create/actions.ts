@@ -9,7 +9,14 @@ import { trips, tripDays, tripEvents } from "@/db/schema";
 import { getOrCreateUser } from "@/lib/auth";
 import { parseIcsEvents } from "@/lib/ics";
 import { insertCalendarEvent } from "@/lib/googleCalendar";
-import { DAYS_LABEL_TO_NIGHTS } from "@/lib/trip-filters";
+import { DAYS_LABEL_TO_NIGHTS, nightsToLabel } from "@/lib/trip-filters";
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function normalizeStartDate(v: FormDataEntryValue | null | undefined): string | null {
+  const s = String(v ?? "").trim();
+  return ISO_DATE.test(s) ? s : null;
+}
 
 export async function createTrip(formData: FormData) {
   const user = await getOrCreateUser();
@@ -18,6 +25,7 @@ export async function createTrip(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const genre = String(formData.get("genre") ?? "").trim();
   const daysLabel = String(formData.get("daysLabel") ?? "日帰り").trim();
+  const startDate = normalizeStartDate(formData.get("startDate"));
   const international = formData.get("scope") === "international";
   const partySizeMin = Math.max(1, Number(formData.get("partySizeMin") ?? 1) || 1);
   const partySizeMaxRaw = String(formData.get("partySizeMax") ?? "").trim();
@@ -31,6 +39,7 @@ export async function createTrip(formData: FormData) {
       authorId: user.id,
       title,
       genre,
+      startDate,
       daysLabel,
       nights: DAYS_LABEL_TO_NIGHTS[daysLabel] ?? 0,
       international,
@@ -56,6 +65,7 @@ export async function createTrip(formData: FormData) {
 export async function createTripFromMemo(data: {
   title: string;
   genre: string;
+  startDate?: string | null;
   coverPhotos: string[];
   days: {
     dateLabel: string;
@@ -67,11 +77,13 @@ export async function createTripFromMemo(data: {
 
   const title = data.title.trim();
   const genre = data.genre.trim();
+  const startDate = normalizeStartDate(data.startDate);
   if (!title || !genre) throw new Error("タイトルとジャンルは必須です");
 
   const db = getDb();
   const dayList = data.days.length > 0 ? data.days : [{ dateLabel: "", events: [] }];
-  const daysLabel = dayList.length <= 1 ? "日帰り" : `${dayList.length - 1}泊${dayList.length}日`;
+  const nights = Math.max(0, dayList.length - 1);
+  const daysLabel = nightsToLabel(nights);
 
   const [trip] = await db
     .insert(trips)
@@ -79,8 +91,9 @@ export async function createTripFromMemo(data: {
       authorId: user.id,
       title,
       genre,
+      startDate,
       daysLabel,
-      nights: DAYS_LABEL_TO_NIGHTS[daysLabel] ?? Math.max(0, dayList.length - 1),
+      nights,
       coverPhotos: data.coverPhotos,
       visibility: "private",
     })
@@ -129,6 +142,17 @@ export async function addDay(tripId: string) {
     openTime: "08:00",
     closeTime: "22:00",
   });
+  // 日数は日付（DAY数）から自動で求める
+  const nights = existing.length; // 追加後の日数 = existing.length + 1 → 泊数 = existing.length
+  await db.update(trips).set({ nights, daysLabel: nightsToLabel(nights) }).where(eq(trips.id, tripId));
+  revalidatePath(`/create/${tripId}`);
+}
+
+// 旅程の開始日（1日目の日付）を設定・変更する。
+export async function setTripStartDate(tripId: string, startDate: string | null) {
+  const value = normalizeStartDate(startDate);
+  const db = getDb();
+  await db.update(trips).set({ startDate: value }).where(eq(trips.id, tripId));
   revalidatePath(`/create/${tripId}`);
 }
 

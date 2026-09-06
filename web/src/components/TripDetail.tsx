@@ -8,6 +8,7 @@ import type { InferSelectModel } from "drizzle-orm";
 import type { trips, tripDays, tripEvents, eventPhotos, users } from "@/db/schema";
 import { purchaseTrip, toggleLike, toggleSave } from "@/app/(app)/trips/[id]/actions";
 import { AddToCalendar } from "@/components/AddToCalendar";
+import { monthSeasonLabel } from "@/lib/trip-filters";
 
 type EventPhoto = InferSelectModel<typeof eventPhotos>;
 type TripEvent = InferSelectModel<typeof tripEvents> & { photos: EventPhoto[] };
@@ -483,6 +484,11 @@ function TripHeader({
         <div className="mb-[11px] flex flex-wrap gap-1.5">
           <span className="rounded-full bg-plan-soft px-2.5 py-1 text-[11.5px] font-medium text-plan">#{trip.genre}</span>
           <span className="rounded-full bg-plan-soft px-2.5 py-1 text-[11.5px] font-medium text-plan">#{trip.daysLabel}</span>
+          {monthSeasonLabel(trip.startDate) && (
+            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11.5px] font-medium text-ink-2">
+              {monthSeasonLabel(trip.startDate)}
+            </span>
+          )}
           <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11.5px] font-medium text-ink-2">
             #{trip.international ? "海外" : "国内"}
           </span>
