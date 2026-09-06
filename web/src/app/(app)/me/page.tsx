@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { SignInButton, UserButton } from "@clerk/nextjs";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
@@ -96,32 +95,6 @@ export default async function MePage() {
           <button className="mt-[11px] w-full rounded-[10px] border border-coin py-2.5 text-[13px] font-bold text-coin">
             コインをチャージする
           </button>
-        </div>
-
-        <p className="px-4 pb-1.5 pt-4 text-[11px] tracking-wide text-ink-3">わたしの旅程</p>
-        <div className="flex flex-col gap-[9px] px-4 pb-6">
-          {myTrips.length === 0 && (
-            <p className="py-4 text-[12.5px] text-ink-3">まだ投稿がありません。「つくる」から最初の旅程を作りましょう。</p>
-          )}
-          {myTrips.map((t) => (
-            <Link
-              key={t.id}
-              href={`/trips/${t.id}`}
-              className="flex items-center gap-2.5 rounded-[11px] border border-line bg-surface px-[11px] py-[9px] text-[12.5px]"
-            >
-              {t.coverPhotos[0] && (
-                <span className="relative block h-[34px] w-[44px] shrink-0 overflow-hidden rounded-md">
-                  <Image src={t.coverPhotos[0]} alt={t.title} fill sizes="44px" className="object-cover" />
-                </span>
-              )}
-              <span className="flex-1 font-medium leading-[1.4]">{t.title}</span>
-              <span className="text-right font-mono-num text-[11.5px] tabular-nums text-ink-2">
-                {t.savesCount}
-                <br />
-                保存
-              </span>
-            </Link>
-          ))}
         </div>
       </div>
     </>

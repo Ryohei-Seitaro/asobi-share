@@ -1,8 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
+import { SignInButton } from "@clerk/nextjs";
 import { and, desc, eq, lte, or } from "drizzle-orm";
 import { getDb } from "@/db";
-import { trips as tripsTable } from "@/db/schema";
+import { trips as tripsTable, tripSaves } from "@/db/schema";
+import { getOrCreateUser } from "@/lib/auth";
 import { ChatSuggest } from "@/components/ChatSuggest";
 
 const GENRES = [
@@ -26,13 +28,15 @@ const GENRES = [
   "ピックルボール",
 ];
 
-const SORTS = [
-  { key: "saves", label: "保存が多い順" },
-  { key: "trend", label: "ランキング順" },
-  { key: "likes", label: "いいね順" },
+const TABS = [
+  { key: "saves", label: "保存が多い順", kind: "sort" },
+  { key: "trend", label: "ランキング順", kind: "sort" },
+  { key: "likes", label: "いいね順", kind: "sort" },
+  { key: "mine", label: "わたしの旅程", kind: "personal" },
+  { key: "saved", label: "保存済み", kind: "personal" },
 ] as const;
 
-type SortKey = (typeof SORTS)[number]["key"];
+type TabKey = (typeof TABS)[number]["key"];
 
 const SORT_COLUMN = {
   saves: tripsTable.savesCount,
@@ -47,20 +51,53 @@ export default async function DiscoverPage({
 }) {
   const params = await searchParams;
   const genre = params.genre ?? "すべて";
-  const sort: SortKey = (SORTS.find((s) => s.key === params.sort)?.key ?? "saves");
-  const budget = params.budget ? Number(params.budget) : undefined;
+  const tab: TabKey = TABS.find((t) => t.key === params.sort)?.key ?? "saves";
+  const isPersonalTab = tab === "mine" || tab === "saved";
+  const budget = !isPersonalTab && params.budget ? Number(params.budget) : undefined;
 
   const db = getDb();
-  const conditions = [
-    genre === "すべて" ? undefined : eq(tripsTable.genre, genre),
-    budget ? or(eq(tripsTable.priceYen, 0), lte(tripsTable.priceYen, budget)) : undefined,
-  ].filter((c): c is NonNullable<typeof c> => c !== undefined);
+  const user = await getOrCreateUser();
 
-  const list = await db
-    .select()
-    .from(tripsTable)
-    .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(SORT_COLUMN[sort]));
+  let list: (typeof tripsTable.$inferSelect)[] = [];
+  if (tab === "mine") {
+    if (user) {
+      list = await db
+        .select()
+        .from(tripsTable)
+        .where(eq(tripsTable.authorId, user.id))
+        .orderBy(desc(tripsTable.savesCount));
+    }
+  } else if (tab === "saved") {
+    if (user) {
+      list = (
+        await db
+          .select({ trip: tripsTable })
+          .from(tripSaves)
+          .innerJoin(tripsTable, eq(tripSaves.tripId, tripsTable.id))
+          .where(eq(tripSaves.userId, user.id))
+          .orderBy(desc(tripSaves.createdAt))
+      ).map((r) => r.trip);
+    }
+  } else {
+    const conditions = [
+      genre === "すべて" ? undefined : eq(tripsTable.genre, genre),
+      budget ? or(eq(tripsTable.priceYen, 0), lte(tripsTable.priceYen, budget)) : undefined,
+    ].filter((c): c is NonNullable<typeof c> => c !== undefined);
+
+    list = await db
+      .select()
+      .from(tripsTable)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(desc(SORT_COLUMN[tab]));
+  }
+
+  const savedTripIds = new Set(
+    user
+      ? (
+          await db.select({ tripId: tripSaves.tripId }).from(tripSaves).where(eq(tripSaves.userId, user.id))
+        ).map((r) => r.tripId)
+      : []
+  );
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
@@ -96,57 +133,82 @@ export default async function DiscoverPage({
           </div>
         )}
 
-        <div className="scrollbar-none flex gap-[7px] overflow-x-auto px-4 pb-1 pt-3.5">
-          {GENRES.map((g) => (
-            <Link
-              key={g}
-              href={g === "すべて" ? "/" : `/?genre=${encodeURIComponent(g)}${sort !== "saves" ? `&sort=${sort}` : ""}`}
-              className={`shrink-0 rounded-full border px-[13px] py-1.5 text-[12.5px] font-medium ${
-                g === genre
-                  ? "border-plan bg-plan text-white"
-                  : "border-line bg-surface text-ink-2"
-              }`}
-            >
-              {g}
-            </Link>
-          ))}
-        </div>
+        {!isPersonalTab && (
+          <div className="scrollbar-none flex gap-[7px] overflow-x-auto px-4 pb-1 pt-3.5">
+            {GENRES.map((g) => (
+              <Link
+                key={g}
+                href={g === "すべて" ? "/" : `/?genre=${encodeURIComponent(g)}${tab !== "saves" ? `&sort=${tab}` : ""}`}
+                className={`shrink-0 rounded-full border px-[13px] py-1.5 text-[12.5px] font-medium ${
+                  g === genre
+                    ? "border-plan bg-plan text-white"
+                    : "border-line bg-surface text-ink-2"
+                }`}
+              >
+                {g}
+              </Link>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-[5px] px-4 pb-0.5 pt-2.5">
-          {SORTS.map((s) => (
+          {TABS.map((t) => (
             <Link
-              key={s.key}
-              href={`/?sort=${s.key}${genre !== "すべて" ? `&genre=${encodeURIComponent(genre)}` : ""}`}
+              key={t.key}
+              href={
+                t.kind === "sort"
+                  ? `/?sort=${t.key}${genre !== "すべて" ? `&genre=${encodeURIComponent(genre)}` : ""}`
+                  : `/?sort=${t.key}`
+              }
               className={`rounded-full border px-2.5 py-1 text-[11.5px] font-medium ${
-                s.key === sort
+                t.key === tab
                   ? "border-transparent bg-plan-soft text-plan font-bold"
                   : "border-transparent text-ink-3"
               }`}
             >
-              {s.label}
+              {t.label}
             </Link>
           ))}
         </div>
 
+        {isPersonalTab && !user ? (
+          <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
+            <p className="text-[13px] text-ink-2">
+              {tab === "mine" ? "自分の旅程" : "保存した旅程"}を見るにはログインしてください。
+            </p>
+            <SignInButton mode="modal">
+              <button className="rounded-xl bg-plan px-6 py-3 text-[14px] font-bold text-white">
+                ログインする
+              </button>
+            </SignInButton>
+          </div>
+        ) : (
         <div className="flex flex-col gap-3 px-4 pb-5 pt-3">
           {list.length === 0 && (
-            <p className="px-1 py-5 text-[13px] text-ink-3">このジャンルの旅程はまだありません。</p>
+            <p className="px-1 py-5 text-[13px] text-ink-3">
+              {tab === "mine"
+                ? "まだ投稿がありません。「つくる」から最初の旅程を作りましょう。"
+                : tab === "saved"
+                  ? "まだ保存した旅程がありません。気になる旅程を保存しましょう。"
+                  : "このジャンルの旅程はまだありません。"}
+            </p>
           )}
           {list.map((trip) => {
             const metric =
-              sort === "likes"
+              tab === "likes"
                 ? `${trip.likesCount} いいね`
-                : sort === "trend"
+                : tab === "trend"
                   ? `急上昇 ${trip.trendScore}`
                   : `${trip.savesCount} 保存`;
             const photos = trip.coverPhotos.length ? trip.coverPhotos : [];
+            const isSaved = savedTripIds.has(trip.id);
             return (
               <Link
                 key={trip.id}
                 href={`/trips/${trip.id}`}
                 className="overflow-hidden rounded-[14px] border border-line bg-surface text-left text-ink"
               >
-                <div className="grid h-[104px] grid-cols-[2fr_1fr_1fr] gap-0.5">
+                <div className="relative grid h-[104px] grid-cols-[2fr_1fr_1fr] gap-0.5">
                   {photos.map((url, i) => (
                     <span key={i} className="relative block overflow-hidden bg-surface-2">
                       <Image
@@ -158,6 +220,14 @@ export default async function DiscoverPage({
                       />
                     </span>
                   ))}
+                  {isSaved && (
+                    <span className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-plan/90 px-2 py-[3px] text-[10.5px] font-bold text-white shadow-sm">
+                      <svg width="9" height="9" viewBox="0 0 12 12" aria-hidden="true">
+                        <path d="M2.5 6 L5 8.5 L9.5 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      保存済み
+                    </span>
+                  )}
                 </div>
                 <div className="px-[13px] pb-[13px] pt-[11px]">
                   <p className="mb-[5px] text-[14px] font-bold leading-[1.45]">{trip.title}</p>
@@ -180,6 +250,7 @@ export default async function DiscoverPage({
             );
           })}
         </div>
+        )}
       </div>
       <ChatSuggest />
     </div>
