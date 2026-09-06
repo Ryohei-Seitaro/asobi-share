@@ -23,6 +23,7 @@
   - ⑦ 有料記事のコイン購入UIが出ない不具合。原因は有料トリップに時間割が無く`hasDetail=false`で早期returnし購入UIごと表示されないこと。`Paywall`（note風「ここから先は有料」区切り＋購入パネル）を時間割の有無に関わらず表示、`CoinSheet`（コイン支払い確認画面／残高不足なら`/me/charge`へ）、未購入は有料イベント本文をサーバー側で伏せる、seedで有料トリップにサンプル時間割を付与。
   - ①修正：カレンダー登録の`oauth_token_retrieval_error`をtry/catchで握り「.icsから取り込んで」を表示（500回避）。`AddToCalendar`は.icsを主ボタン化、Google直接登録は「準備中」表記。保存ボタンでのカレンダーポップアップ自動表示を廃止。Google直接登録の本対応はtasks未完了[infra][backend]項目。
   - 購入済みの有料記事に「購入済み」マーク：見つけるのカード（`PurchasedBadge`右上＋価格チップを「購入済み」表示）と旅程詳細ヘッダー。`tripPurchases`から集計。
+  - 残高不足時のチャージ導線：`CoinSheet`の不足時ボタンを「不足分（🪙N）をチャージする」にし、`/me/charge?need=N&return=/trips/{id}`へ遷移。チャージ画面は`return`（自サイト内絶対パスのみ許可）で戻り先を受け取り、①初期金額を不足分にあわせる ②戻るボタンを記事へ ③チャージ完了後1.4秒で自動的に記事へ戻す＋「記事に戻る」ボタン。`chargeCoin(amountYen, revalidate?)`で戻り先パスを`revalidatePath`し残高表示を最新化。
   (起票: Seitaro, 2026-09-06)
 
 ## 完了

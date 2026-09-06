@@ -142,6 +142,7 @@ export function TripDetail({
           <CoinSheet
             priceCoin={trip.priceCoin}
             balance={coinBalance}
+            returnTo={`/trips/${trip.id}`}
             isPending={isPending}
             error={purchaseError}
             onConfirm={() => handlePurchase("coin")}
@@ -352,6 +353,7 @@ export function TripDetail({
         <CoinSheet
           priceCoin={trip.priceCoin}
           balance={coinBalance}
+          returnTo={`/trips/${trip.id}`}
           isPending={isPending}
           error={purchaseError}
           onConfirm={() => handlePurchase("coin")}
@@ -597,9 +599,11 @@ function Paywall({
 }
 
 // コイン支払い画面（確認シート）。残高が足りなければチャージ画面へ誘導する。
+// チャージ画面には returnTo を渡し、チャージ完了後にこの記事へ戻れるようにする。
 function CoinSheet({
   priceCoin,
   balance,
+  returnTo,
   isPending,
   error,
   onConfirm,
@@ -607,6 +611,7 @@ function CoinSheet({
 }: {
   priceCoin: number;
   balance: number;
+  returnTo: string;
   isPending: boolean;
   error: string | null;
   onConfirm: () => void;
@@ -614,6 +619,7 @@ function CoinSheet({
 }) {
   const short = balance < priceCoin;
   const deficit = priceCoin - balance;
+  const chargeHref = `/me/charge?need=${deficit}&return=${encodeURIComponent(returnTo)}`;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="コインで購入">
       <button aria-label="閉じる" onClick={onClose} className="absolute inset-0 bg-black/40" />
@@ -641,10 +647,10 @@ function CoinSheet({
         )}
         {short ? (
           <Link
-            href="/me/charge"
+            href={chargeHref}
             className="block rounded-[11px] bg-coin px-5 py-3 text-center text-[14px] font-bold text-white"
           >
-            コインをチャージする
+            不足分（🪙{deficit.toLocaleString()}）をチャージする
           </Link>
         ) : (
           <button
@@ -655,7 +661,9 @@ function CoinSheet({
             {isPending ? "処理中…" : `🪙${priceCoin.toLocaleString()} を使って購入する`}
           </button>
         )}
-        <p className="mt-2 text-center text-[11px] text-ink-3">購入すると全編が読めます。</p>
+        <p className="mt-2 text-center text-[11px] text-ink-3">
+          {short ? "チャージが終わると、この記事に戻ります。" : "購入すると全編が読めます。"}
+        </p>
       </div>
     </div>
   );

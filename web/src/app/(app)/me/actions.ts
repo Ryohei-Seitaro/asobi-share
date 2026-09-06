@@ -8,8 +8,13 @@ import { getOrCreateUser } from "@/lib/auth";
 
 const YEN_PER_COIN = 2;
 
-// 円決済は決済プロバイダ未統合のためモックとして記録のみ行う（購入フローと同様の扱い）
-export async function chargeCoin(amountYen: number): Promise<{ ok: true; balance: number } | { ok: false; error: string }> {
+// 円決済は決済プロバイダ未統合のためモックとして記録のみ行う（購入フローと同様の扱い）。
+// revalidate には「チャージ後に戻る画面のパス」を渡せる（記事から不足分チャージで来たとき、
+// 戻り先のコイン残高表示を最新化するため）。
+export async function chargeCoin(
+  amountYen: number,
+  revalidate?: string,
+): Promise<{ ok: true; balance: number } | { ok: false; error: string }> {
   const user = await getOrCreateUser();
   if (!user) return { ok: false, error: "ログインが必要です" };
   if (!Number.isFinite(amountYen) || amountYen < 100) {
@@ -36,6 +41,10 @@ export async function chargeCoin(amountYen: number): Promise<{ ok: true; balance
   const row = await db.query.coinBalances.findFirst({ where: eq(coinBalances.userId, user.id) });
   revalidatePath("/me");
   revalidatePath("/me/charge");
+  // 自サイト内の絶対パスのみ許可（オープンリダイレクト対策と同じ基準）
+  if (revalidate && revalidate.startsWith("/") && !revalidate.startsWith("//")) {
+    revalidatePath(revalidate);
+  }
   return { ok: true, balance: row?.balance ?? coinAmount };
 }
 
