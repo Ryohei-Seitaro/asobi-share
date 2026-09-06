@@ -40,10 +40,9 @@ export function AddToCalendar({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="カレンダーに追加">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="カレンダーに追加">
       <button aria-label="閉じる" onClick={onClose} className="absolute inset-0 bg-black/40" />
-      <div className="relative w-full max-w-[440px] rounded-t-[20px] border border-line bg-surface px-5 pb-7 pt-4">
-        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
+      <div className="relative max-h-[85vh] w-full max-w-[400px] overflow-y-auto rounded-[20px] border border-line bg-surface p-5 shadow-xl">
         <h2 className="mb-1 font-display text-[16px] font-semibold">カレンダーに追加</h2>
         <p className="mb-4 text-[12px] leading-[1.6] text-ink-3">
           {dayCount > 1

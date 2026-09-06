@@ -24,6 +24,7 @@
   - ①修正：カレンダー登録の`oauth_token_retrieval_error`をtry/catchで握り「.icsから取り込んで」を表示（500回避）。`AddToCalendar`は.icsを主ボタン化、Google直接登録は「準備中」表記。保存ボタンでのカレンダーポップアップ自動表示を廃止。Google直接登録の本対応はtasks未完了[infra][backend]項目。
   - 購入済みの有料記事に「購入済み」マーク：見つけるのカード（`PurchasedBadge`右上＋価格チップを「購入済み」表示）と旅程詳細ヘッダー。`tripPurchases`から集計。
   - 残高不足時のチャージ導線：`CoinSheet`の不足時ボタンを「不足分（🪙N）をチャージする」にし、`/me/charge?need=N&return=/trips/{id}`へ遷移。チャージ画面は`return`（自サイト内絶対パスのみ許可）で戻り先を受け取り、①初期金額を不足分にあわせる ②戻るボタンを記事へ ③チャージ完了後1.4秒で自動的に記事へ戻す＋「記事に戻る」ボタン。`chargeCoin(amountYen, revalidate?)`で戻り先パスを`revalidatePath`し残高表示を最新化。
+  - レビュー指摘の修正：(a) 購入パネルが時間割の一番下にまとまって出ていたのを、旧仕様どおり有料ライン（最初のロック済みイベント）の縦位置にグリッドへ重ねて表示するよう戻した。(b) `CoinSheet`・`AddToCalendar`のポップアップを画面下からのボトムシートではなく中央モーダル（`items-center`・角丸全周・ドラッグハンドル廃止・`shadow-xl`）に変更。
   (起票: Seitaro, 2026-09-06)
 
 ## 完了

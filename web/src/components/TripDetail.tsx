@@ -174,6 +174,14 @@ export function TripDetail({
   const close = toMinutes(day.closeTime);
   const gridHeight = (close - open) * PPM;
 
+  // 有料ライン（最初のロック済みイベント）の縦位置。購入パネルはここに重ねて出す。
+  const firstLocked =
+    paidFrom != null ? day.events.find((ev) => ev.orderIndex >= paidFrom) : undefined;
+  const firstLockedStart = firstLocked
+    ? (layer === "plan" ? firstLocked.planStart : (firstLocked.actualStart ?? firstLocked.planStart))
+    : null;
+  const paywallTop = firstLockedStart != null ? (toMinutes(firstLockedStart) - open) * PPM + 12 : 0;
+
   return (
     <div className="flex flex-1 flex-col">
       <TripHeader trip={trip} saved={saved} saveCount={saveCount} purchased={purchased} />
@@ -344,9 +352,16 @@ export function TripDetail({
               </div>
             );
           })}
-        </div>
 
-        {paywall && <div className="mt-4">{paywall}</div>}
+          {paywall && (
+            <div
+              className="absolute left-11 right-0 z-10"
+              style={{ top: firstLocked ? paywallTop : gridHeight + 8 }}
+            >
+              {paywall}
+            </div>
+          )}
+        </div>
       </div>
 
       {coinSheetOpen && trip.priceCoin != null && (
@@ -543,10 +558,10 @@ function Paywall({
     <div className="mx-1">
       <div className="mb-3 flex items-center gap-2 text-[11px] font-bold tracking-wide text-money">
         <span className="h-px flex-1 bg-money/40" />
-        ここから先は有料です
+        <span className="rounded-full bg-surface-2 px-2 py-0.5">ここから先は有料です</span>
         <span className="h-px flex-1 bg-money/40" />
       </div>
-      <div className="rounded-2xl border border-money bg-surface p-4">
+      <div className="rounded-2xl border border-money bg-surface p-4 shadow-lg">
         <p className="mb-1 text-[12.5px] leading-[1.65] text-ink-2">
           {lockedCount != null && lockedCount > 0 ? (
             <>
@@ -621,10 +636,9 @@ function CoinSheet({
   const deficit = priceCoin - balance;
   const chargeHref = `/me/charge?need=${deficit}&return=${encodeURIComponent(returnTo)}`;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" role="dialog" aria-modal="true" aria-label="コインで購入">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="コインで購入">
       <button aria-label="閉じる" onClick={onClose} className="absolute inset-0 bg-black/40" />
-      <div className="relative w-full max-w-[440px] rounded-t-[20px] border border-line bg-surface px-5 pb-7 pt-4">
-        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-line" />
+      <div className="relative max-h-[85vh] w-full max-w-[400px] overflow-y-auto rounded-[20px] border border-line bg-surface p-5 shadow-xl">
         <h2 className="mb-3 font-display text-[16px] font-semibold">コインで購入</h2>
         <dl className="mb-4 flex flex-col gap-1.5 text-[13px]">
           <div className="flex justify-between">
