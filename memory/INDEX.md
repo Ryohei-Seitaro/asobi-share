@@ -6,5 +6,6 @@
 
 新しい順に追記する。
 
+- [2026-09-06 web/実装のローカル動作確認と個人用Neonプロジェクトの採用](20260906_web-local-verification.md) — Clerk keys発行・個人Neonプロジェクトでスキーマ反映・シードして動作確認
 - [2026-09-05 CEOフィードバック9項目の実装と共同タスクボードの新設](20260905_feedback-and-tasks-mvp-updates.md) — CEOフィードバック9項目のモック実装、tasks/board.md新設
 - [2026-09-05 memory/ディレクトリの新設](20260905_memory-setup.md) — hqの方針に従いこのリポジトリにmemory/を新設
