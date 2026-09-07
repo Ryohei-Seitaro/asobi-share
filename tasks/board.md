@@ -16,8 +16,12 @@
 - [ ] [qa] 本番デプロイ前の一通りのQA（主要導線の動作確認・レスポンシブ確認） (起票: 久野, 2026-09-05)
 - [ ] [infra][backend] Google Calendar連携の本番運用に向けて、Clerk DashboardでGoogleソーシャル接続を独自クレデンシャル化し`calendar.events`スコープを追加する（Google Cloud ConsoleでのOAuthクライアント作成・Calendar API有効化を含む） (起票: 久野, 2026-09-06)
 - [ ] [backend] Seitaro側のローカル/開発DBでも`web/scripts/backfill-trip-filters.ts`を実行し、既存tripsのnights/international/partySize系が正しい値になっているか確認する (起票: 久野, 2026-09-06)
+- [ ] [backend][infra] 本番Neon（Ryoheiの共有プロジェクト）に trip が0件。`web/scripts/seed.ts` を本番 `DATABASE_URL` に対して実行してシードする（見つける画面が空なのはこれが原因。スキーマは反映済み） (起票: Seitaro, 2026-09-07)
+- [ ] [infra][backend] （任意）`withColdStartRetry` 相当のDB読み取りリトライを `/trips/[id]`・`/me` 等の他ページにも広げるか検討する。`src/db` に共通ヘルパを置く案。頻度を見てから (起票: Seitaro, 2026-09-07)
 
 ## 完了
+
+- [x] [frontend][infra][qa] 本番で「This page couldn't load / A server error occurred（ERROR 2379659138）」。原因＝Neon（サーバーレスPostgres）がアイドルでゼロにスケールし、コールドスタート直後の最初のDBクエリが一過性で失敗。かつ `error.tsx` が無く Next の素の全画面エラーが出ていた（`loading.tsx` はエラーを捕捉しない）。対応：`(app)/error.tsx`（再読み込み導線つき）＋ `global-error.tsx` を追加、見つける画面のDB読み取りを `withColdStartRetry`（700ms待って1回リトライ）でラップ。PR #17 は原因ではない（以前からリクエスト時のDB読み取りが無防備だった）。※本番DBが trip 0件なのは別問題（未完了に起票）（`memory/20260907_prod-error-boundary-and-neon-cold-start.md`） (起票: Seitaro, 2026-09-07 / 完了: Seitaro, 2026-09-07)
 
 - [x] [frontend][backend][qa] 操作ごとに左下「Rendering」＋ロードが走りUXが悪い問題の高速化（PR #17）。見つける画面はフィルタ/タブ/並べ替え/検索が全てフルのサーバー遷移で、1操作ごとに Clerk API 1往復＋DBクエリ直列4往復が走っていた。対応：(1)`lib/auth` の `getOrCreateUser` を `currentUser()`→`auth()` ベースに（既存ユーザーは usersのPK参照1発、Clerk API往復を毎回除去。初回のみ `currentUser()` フォールバック）。読み取り専用ページ用に `getCurrentUserId()` 追加。(2)見つける画面：`getCurrentUserId()` 化＋一覧/保存ID/購入IDを `Promise.all` 並列化。(3)旅程詳細：`getCurrentUserId()` 化。(4)マイページ：旅程一覧＋残高を `Promise.all` 並列化。(5)`(app)/loading.tsx`・`trips/[id]/loading.tsx` 追加で遷移直後に即スケルトン表示。※「Rendering」インジケータ自体は `next dev` 限定で本番には出ない。／**2巡目**（CEO「フィルタ選択がまだ遅い」）：見つける画面をクライアント側フィルタリングに作り替え。旅程を1回だけ全件取得して `DiscoverClient`（"use client"）へ渡し、チップ/タブ/検索は `<Link>` をやめて state 更新＝ネットワークゼロで即再描画。URLは `history.replaceState` で同期（共有・戻る操作は維持）。フィルタ条件は `lib/discover-filters.ts` に集約し元のDrizzleクエリと同等（OLD/NEW 7パターンで件数一致を確認）。DBインデックス追加はデータ増加時の後回し（`memory/20260907_discover-render-latency.md`） (起票: Seitaro, 2026-09-07 / 完了: Seitaro, 2026-09-07)
 
