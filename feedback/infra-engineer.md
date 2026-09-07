@@ -30,4 +30,9 @@ CEOからのフィードバックのうち、インフラエンジニアの観�
 
 ## ログ
 
-> （記録なし）
+## 2026-09-07
+- タスク概要：マージ後、CEOが本番 https://asobi-share.vercel.app を開くと「This page couldn't load / A server error occurred（ERROR 2379659138）」。「vercel開かない」との報告。
+- 原因：Vercel のビルド・デプロイは成功。**ランタイムの一過性エラー**。Neon（`@neondatabase/serverless` のHTTPクエリ）は**アイドルでゼロにスケール**し、コールドスタート直後の最初のリクエストでDB読み取りが失敗していた。数分後は 12/12 成功。加えて `error.tsx` 不在で Next の素の全画面エラーが露出。
+- 対応：`(app)/error.tsx`・`global-error.tsx` 追加。見つける画面のDB読み取りを `withColdStartRetry`（700ms待って1回だけ再試行）でラップ。
+- 傾向メモ：**Neon scale-to-zero 環境ではコールドスタート失敗は「起きるもの」として設計する。** リクエスト時にDBを読むページは `error.tsx`（＋必要なら軽いリトライ）を必ず用意。`min compute`/scale-to-zero 無効化は課金判断なのでPoC中はコード側で吸収。デプロイ直後は本番URLを実際に開いて主要導線を1周する（CEOに先に踏ませない）。
+- 別件として記録：本番Neonは trip が0件（シード未実施）。`tasks/board.md` 未完了に起票。
